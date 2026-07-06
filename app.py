@@ -461,7 +461,7 @@ def show_user_management_page():
 
 def show_prediction_dashboard():
     """Halaman utama dashboard prediksi — dengan pemilihan file dari database."""
-    st.title("🎓 Dashboard Prediksi Siswa Dropout sekolah")
+    st.title("🎓 Dashboard Prediksi Siswa Dropout Sekolah")
     st.markdown("""
     Aplikasi ini diimplementasikan mengikuti metodologi **CRISP-DM** menggunakan algoritma **C4.5 (Decision Tree)**.
     Aplikasi mendukung dua jenis data: **Data Eksperimen (UCI Dataset)** dan **Data Primer (SMK Tunas Teknologi)** .
