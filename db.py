@@ -60,6 +60,23 @@ def init_db():
         )
     ''')
 
+    # Buat tabel prediction_history
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS prediction_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_by INTEGER NOT NULL,
+            dataset_name TEXT NOT NULL,
+            mode_analisis TEXT NOT NULL,
+            accuracy REAL,
+            precision REAL,
+            recall REAL,
+            f1_score REAL,
+            config_json TEXT,
+            run_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (run_by) REFERENCES users(id)
+        )
+    ''')
+
     conn.commit()
 
     # Seed default users jika belum ada
@@ -260,3 +277,41 @@ def delete_uploaded_file(file_id: int):
     affected = cursor.rowcount
     conn.close()
     return affected > 0
+
+
+# ── PREDICTION HISTORY ─────────────────────────────────────────────────────────
+
+def save_prediction_history(run_by: int, dataset_name: str, mode_analisis: str, accuracy: float, precision: float, recall: float, f1_score: float, config_json: str):
+    """Simpan riwayat prediksi ke database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """INSERT INTO prediction_history 
+           (run_by, dataset_name, mode_analisis, accuracy, precision, recall, f1_score, config_json) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (run_by, dataset_name, mode_analisis, accuracy, precision, recall, f1_score, config_json)
+    )
+    conn.commit()
+    hist_id = cursor.lastrowid
+    conn.close()
+    return hist_id
+
+
+def get_prediction_history():
+    """
+    Ambil semua riwayat prediksi beserta info user.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT ph.*, u.nama_lengkap as run_by_name, u.role as run_by_role
+        FROM prediction_history ph
+        JOIN users u ON ph.run_by = u.id
+        ORDER BY ph.run_at DESC
+    """
+    cursor.execute(query)
+    history = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return history
+

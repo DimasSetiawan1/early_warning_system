@@ -4,7 +4,7 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.feature_selection import mutual_info_classif
@@ -34,6 +34,9 @@ st.set_page_config(
 # Styling Seaborn
 sns.set_theme(style="whitegrid")
 plt.rcParams['figure.dpi'] = 150
+plt.rcParams['figure.facecolor'] = 'none'
+plt.rcParams['axes.facecolor'] = 'none'
+plt.rcParams['savefig.transparent'] = True
 
 # ── SESSION STATE INIT ────────────────────────────────────────────────────────
 if 'logged_in' not in st.session_state:
@@ -47,7 +50,7 @@ if 'role' not in st.session_state:
 if 'nama_lengkap' not in st.session_state:
     st.session_state.nama_lengkap = None
 if 'current_page' not in st.session_state:
-    st.session_state.current_page = 'Dashboard Prediksi'
+    st.session_state.current_page = 'Dashboard Riwayat'
 
 
 # ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
@@ -172,20 +175,24 @@ def show_sidebar():
         # Menu items based on role
         if role == 'Admin':
             menu_items = [
-                '📊 Dashboard Prediksi',
+                '📊 Dashboard Riwayat',
+                '⚙️ Konfigurasi Prediksi',
                 '📤 Upload File',
                 '📁 Manajemen File',
                 '👥 Manajemen User'
             ]
-        elif role == 'Wali Kelas':
+        elif role == 'BK':
             menu_items = [
-                '📊 Dashboard Prediksi',
+                '📊 Dashboard Riwayat',
+                '⚙️ Konfigurasi Prediksi',
                 '📤 Upload File',
                 '📁 Manajemen File'
             ]
-        elif role == 'BK':
+        elif role == 'Wali Kelas':
             menu_items = [
-                '📊 Dashboard Prediksi'
+                '📊 Dashboard Riwayat',
+                '📤 Upload File',
+                '📁 Manajemen File'
             ]
         else:
             menu_items = []
@@ -457,89 +464,195 @@ def show_user_management_page():
                     st.rerun()
 
 
-# ── HALAMAN DASHBOARD PREDIKSI ───────────────────────────────────────────────
+# ── HALAMAN DASHBOARD RIWAYAT ───────────────────────────────────────────────
 
-def show_prediction_dashboard():
-    """Halaman utama dashboard prediksi — dengan pemilihan file dari database."""
-    st.title("🎓 Dashboard Prediksi Siswa Dropout Sekolah")
-    st.markdown("""
-    Aplikasi ini diimplementasikan mengikuti metodologi **CRISP-DM** menggunakan algoritma **C4.5 (Decision Tree)**.
-    Aplikasi mendukung dua jenis data: **Data Eksperimen (UCI Dataset)** dan **Data Primer (SMK Tunas Teknologi)** .
-    """)
+def show_dashboard_riwayat():
+    st.title("📊 Dashboard Riwayat Prediksi")
+    # st.markdown("Ringkasan dan histori prediksi yang pernah dilakukan.")
 
+    # ── RIWAYAT PREDIKSI TABLE ─────────────────────────────────────────────────
+    # st.subheader("📋 Riwayat Prediksi")
+    history = db.get_prediction_history()
+
+    if not history:
+        st.info("Belum ada riwayat prediksi. Silakan jalankan analisis melalui menu **Konfigurasi Prediksi**.")
+    else:
+        # hist_data = []
+        # for h in history:
+        #     hist_data.append({
+        #         'ID': h['id'],
+        #         'Tanggal': format_datetime(h['run_at']),
+        #         'Oleh': h.get('run_by_name', '-'),
+        #         'Dataset': h['dataset_name'],
+        #         'Mode': h['mode_analisis'],
+        #         'Akurasi': f"{h['accuracy']:.2f}%" if h['accuracy'] else '-',
+        #         'F1-Score': f"{h['f1_score']:.2f}%" if h['f1_score'] else '-'
+        #     })
+        # st.dataframe(pd.DataFrame(hist_data), use_container_width=True, hide_index=True)
+
+        # ── DROPDOWN PILIH RIWAYAT UNTUK VISUALISASI ───────────────────────────
+        # st.markdown("---")
+        # st.subheader("📈 Distribusi Hasil Prediksi")
+
+        # Buat label pilihan dari riwayat
+        history_options = {
+            f"#{h['id']} — {h['dataset_name']} ({format_datetime(h['run_at'])})": h
+            for h in history
+        }
+
+        selected_label = st.selectbox(
+            "Pilih Riwayat Prediksi untuk Ditampilkan:",
+            options=list(history_options.keys()),
+            index=0
+        )
+
+        selected_h = history_options[selected_label]
+
+        # Parse config_json dari riwayat yang dipilih
+        import json
+        config_data = {}
+        if selected_h.get('config_json'):
+            try:
+                config_data = json.loads(selected_h['config_json'])
+            except Exception:
+                config_data = {}
+
+        target_col = config_data.get('target', None)
+        features = config_data.get('features', [])
+
+        # Load file dataset yang sesuai
+        uploaded_files = db.get_uploaded_files()
+        matched_file = next(
+            (f for f in uploaded_files if f['original_filename'] == selected_h['dataset_name']),
+            None
+        )
+
+        if matched_file is None:
+            st.warning(f"File dataset **{selected_h['dataset_name']}** tidak ditemukan di storage. Distribusi tidak dapat ditampilkan.")
+        elif target_col is None:
+            st.warning("Informasi kolom target tidak tersimpan di riwayat ini.")
+        else:
+            df_hist = load_file_from_path(matched_file['file_path'])
+
+            if df_hist is None or target_col not in df_hist.columns:
+                st.warning("Dataset atau kolom target tidak dapat dimuat.")
+            else:
+                color_palette = ['#2ECC71', '#E74C3C', '#3498DB', '#F39C12', '#9B59B6', '#1ABC9C']
+
+                # Metrik ringkasan
+                m1, m2, m3, m4 = st.columns(4)
+                with m1:
+                    st.metric("Akurasi", f"{selected_h['accuracy']:.2f}%" if selected_h['accuracy'] else '-')
+                with m2:
+                    st.metric("Presisi", f"{selected_h['precision']:.2f}%" if selected_h['precision'] else '-')
+                with m3:
+                    st.metric("Recall", f"{selected_h['recall']:.2f}%" if selected_h['recall'] else '-')
+                with m4:
+                    st.metric("F1-Score", f"{selected_h['f1_score']:.2f}%" if selected_h['f1_score'] else '-')
+
+                st.markdown("---")
+
+                # Distribusi kelas target dari dataset
+                target_counts = df_hist[target_col].value_counts()
+                target_labels = [str(l) for l in target_counts.index.tolist()]
+                target_values = target_counts.values.tolist()
+                total = sum(target_values)
+                target_colors = color_palette[:len(target_labels)]
+
+                chart_col1, chart_col2 = st.columns(2)
+
+                with chart_col1:
+                    st.markdown(f"##### Distribusi Kelas Target: `{target_col}`")
+                    fig1, ax1 = plt.subplots(figsize=(7, 5))
+                    bars = ax1.bar(target_labels, target_values, color=target_colors, edgecolor='white', linewidth=1.5)
+                    for bar, val in zip(bars, target_values):
+                        ax1.text(bar.get_x() + bar.get_width()/2., bar.get_height() + total*0.01,
+                                 f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+                    ax1.set_ylabel('Jumlah Siswa', fontsize=11)
+                    ax1.set_title(f'Distribusi Kelas: {target_col}', fontsize=12, fontweight='bold')
+                    ax1.spines['top'].set_visible(False)
+                    ax1.spines['right'].set_visible(False)
+                    ax1.tick_params(colors='gray')
+                    ax1.yaxis.label.set_color('gray')
+                    plt.tight_layout()
+                    st.pyplot(fig1, transparent=True)
+                    plt.close(fig1)
+
+                with chart_col2:
+                    st.markdown("##### Proporsi Kelas Target")
+                    fig2, ax2 = plt.subplots(figsize=(7, 5))
+                    wedges, texts, autotexts = ax2.pie(
+                        target_values, labels=target_labels, colors=target_colors,
+                        autopct='%1.1f%%', startangle=140, pctdistance=0.75,
+                        textprops={'fontsize': 11, 'fontweight': 'bold'}
+                    )
+                    for autotext in autotexts:
+                        autotext.set_fontsize(10)
+                    ax2.axis('equal')
+                    ax2.set_title('Proporsi Kelas Target', fontsize=12, fontweight='bold')
+                    plt.tight_layout()
+                    st.pyplot(fig2, transparent=True)
+                    plt.close(fig2)
+
+                # Tabel ringkasan distribusi
+                dist_df = pd.DataFrame({
+                    'Kelas': target_labels,
+                    'Jumlah': target_values,
+                    'Proporsi (%)': [f"{v/total*100:.1f}%" for v in target_values]
+                })
+                st.dataframe(dist_df, use_container_width=True, hide_index=True)
+
+
+
+def show_prediction_config():
+    st.title("⚙️ Konfigurasi Prediksi")
+    
     role = st.session_state.role
     user_id = st.session_state.user_id
 
-    # ── Mode Selection ──
-    st.sidebar.markdown("---")
-    st.sidebar.header("🛠️ Pengaturan Dashboard")
-
-    # Wali Kelas default ke Data Primer, role lain default ke Eksperimen
-    default_mode_index = 1 if role == 'Wali Kelas' else 0
-
-    mode = st.sidebar.selectbox(
-        "Pilih Mode Analisis",
-        options=[
-            "Eksperimen (UCI Dataset - Pre-trained Model)",
-            "Data Primer (SMK Tunas Teknologi - Train On-the-fly)"
-        ],
-        index=default_mode_index
-    )
-
-    # ── File Selection dari database ──
-    st.sidebar.markdown("---")
-    st.sidebar.header("📂 Pilih File Dataset")
+    # Load UCI pre-trained assets
+    model_uci, scaler_uci, features_uci = load_uci_artifacts()
 
     # Ambil file berdasarkan role
     if role == 'Admin':
         available_files = db.get_uploaded_files()
     elif role == 'BK':
-        # BK bisa lihat semua hasil dari semua Wali Kelas
         available_files = db.get_uploaded_files()
-    elif role == 'Wali Kelas':
-        # Wali Kelas hanya lihat file miliknya
-        available_files = db.get_uploaded_files(uploaded_by=user_id)
     else:
         available_files = []
 
-    # Load UCI pre-trained assets
-    model_uci, scaler_uci, features_uci = load_uci_artifacts()
-
     if not available_files:
         st.info("💡 **Belum ada file dataset yang tersedia.** Silakan upload file terlebih dahulu melalui menu **Upload File**.")
-
-        # Tampilkan intro
-        _show_intro_screen(features_uci)
         return
 
-    # Buat opsi file di sidebar
-    file_options = {}
-    for f in available_files:
-        label = f"📄 {f['original_filename']} (oleh {f['uploader_name']})"
-        file_options[label] = f
+    st.markdown("---")
+    col_mode, col_file = st.columns(2)
 
-    selected_file_label = st.sidebar.selectbox(
-        "Pilih file untuk dianalisis:",
-        options=list(file_options.keys())
-    )
+    with col_mode:
+        mode = st.selectbox(
+            "🛠️ Pilih Mode Analisis",
+            options=[
+                "Eksperimen (UCI Dataset - Pre-trained Model)",
+                "Data Primer (SMK Tunas Teknologi - Train On-the-fly)"
+            ]
+        )
+
+    with col_file:
+        file_options = {}
+        for f in available_files:
+            label = f"📄 {f['original_filename']} (oleh {f['uploader_name']})"
+            file_options[label] = f
+
+        selected_file_label = st.selectbox(
+            "📂 Pilih File Dataset",
+            options=list(file_options.keys())
+        )
 
     selected_file = file_options[selected_file_label] if selected_file_label else None
 
     if selected_file is None:
-        st.info("💡 Pilih file dataset dari sidebar untuk memulai analisis.")
-        _show_intro_screen(features_uci)
         return
 
-    # ── Display file info ──
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("##### ℹ️ Info File Terpilih")
-    st.sidebar.markdown(f"**File:** {selected_file['original_filename']}")
-    st.sidebar.markdown(f"**Oleh:** {selected_file['uploader_name']}")
-    st.sidebar.markdown(f"**Upload:** {format_datetime(selected_file['uploaded_at'])}")
-    if selected_file['description']:
-        st.sidebar.markdown(f"**Deskripsi:** {selected_file['description']}")
-
-    # ── Load File ──
     df_raw = load_file_from_path(selected_file['file_path'])
 
     if df_raw is None:
@@ -548,15 +661,163 @@ def show_prediction_dashboard():
 
     st.success(f"✅ Berhasil memuat file: `{selected_file['original_filename']}` ({df_raw.shape[0]} baris × {df_raw.shape[1]} kolom)")
 
-    # Display raw data preview
-    with st.expander("👁️ Lihat Preview Data"):
-        st.dataframe(df_raw.head(10))
-
-    # ── PROSES PREDIKSI ──────────────────────────────────────────────────────
     if mode == "Eksperimen (UCI Dataset - Pre-trained Model)":
-        _run_experiment_mode(df_raw, model_uci, scaler_uci, features_uci)
-    elif mode == "Data Primer (SMK Tunas Teknologi - Train On-the-fly)":
-        _run_primary_mode(df_raw)
+        _config_experiment_mode(df_raw, selected_file)
+    else:
+        _config_primary_mode(df_raw, selected_file)
+
+
+def _config_experiment_mode(df_raw, selected_file):
+    st.markdown("#### Konfigurasi Model (Pre-trained UCI)")
+    st.info("Model menggunakan pre-trained weights. Tidak ada parameter yang perlu diubah.")
+    if st.button("🚀 Proses Analisis", type="primary", use_container_width=True):
+        st.session_state.run_config = {
+            'mode': 'Eksperimen',
+            'df_raw': df_raw,
+            'dataset_name': selected_file['original_filename']
+        }
+        st.session_state.current_page = 'Hasil Prediksi'
+        st.rerun()
+
+def _config_primary_mode(df_raw, selected_file):
+    st.markdown("#### Konfigurasi Pembuatan Model C4.5")
+
+    columns_list = list(df_raw.columns)
+
+    col_cfg1, col_cfg2 = st.columns(2)
+
+    with col_cfg1:
+        default_target_idx = 0
+        for idx, col in enumerate(columns_list):
+            if col.lower() in ['status', 'target', 'label']:
+                default_target_idx = idx
+                break
+        target_col = st.selectbox(
+            "Pilih Kolom Target (Y)",
+            options=columns_list,
+            index=default_target_idx
+        )
+
+        default_features = [col for col in columns_list if col != target_col]
+
+        selected_train_features = st.multiselect(
+            "Pilih Parameter Fitur (X)",
+            options=default_features,
+            default=default_features,
+            help="Pilih fitur-fitur yang akan digunakan sebagai dasar pembelajaran C4.5."
+        )
+
+    with col_cfg2:
+        test_size = st.slider("Ukuran Data Testing (%)", min_value=10, max_value=50, value=20, step=5) / 100.0
+        max_depth = st.slider("Kedalaman Maksimum Pohon (Max Depth)", min_value=3, max_value=15, value=7)
+
+        use_ig_selection = st.checkbox("Aktifkan Seleksi Fitur otomatis dengan Information Gain", value=False,
+                                        help="Model hanya akan menggunakan fitur yang memiliki Information Gain >= threshold.")
+        ig_threshold = 0.0
+        if use_ig_selection:
+            ig_threshold = st.slider("Threshold Information Gain", min_value=0.0, max_value=0.2, value=0.05, step=0.01)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # FASE 2 — DISTRIBUSI KELAS TARGET (ditampilkan sebelum training)
+    # ══════════════════════════════════════════════════════════════════════════
+    st.markdown("---")
+    st.subheader("📊 Fase 2 — Distribusi Kelas Target")
+
+    y_raw_preview = df_raw[target_col]
+    target_counts = y_raw_preview.value_counts()
+    target_labels = target_counts.index.tolist()
+    target_values = target_counts.values.tolist()
+    total_data = sum(target_values)
+
+    color_palette = ['#2ECC71', '#E74C3C', '#3498DB', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#34495E']
+    target_colors = color_palette[:len(target_labels)]
+
+    dist_col1, dist_col2 = st.columns(2)
+
+    with dist_col1:
+        st.markdown("##### Distribusi Kelas Target (Asli)")
+        fig_dist, ax_dist = plt.subplots(figsize=(7, 5))
+        bars = ax_dist.bar(target_labels, target_values, color=target_colors, edgecolor='white', linewidth=1.5)
+        for bar, val in zip(bars, target_values):
+            ax_dist.text(bar.get_x() + bar.get_width()/2., bar.get_height() + total_data*0.01,
+                        f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+        ax_dist.set_ylabel('Jumlah Siswa', fontsize=11)
+        ax_dist.set_title('Distribusi Kelas Target (Asli)', fontsize=12, fontweight='bold')
+        ax_dist.spines['top'].set_visible(False)
+        ax_dist.spines['right'].set_visible(False)
+        plt.tight_layout()
+        st.pyplot(fig_dist)
+        plt.close(fig_dist)
+
+    with dist_col2:
+        st.markdown("##### Proporsi Kelas Target")
+        fig_pie, ax_pie = plt.subplots(figsize=(7, 5))
+        wedges, texts, autotexts = ax_pie.pie(
+            target_values, labels=target_labels, colors=target_colors,
+            autopct='%1.1f%%', startangle=140, pctdistance=0.75,
+            textprops={'fontsize': 11, 'fontweight': 'bold'}
+        )
+        for autotext in autotexts:
+            autotext.set_fontsize(10)
+        ax_pie.axis('equal')
+        ax_pie.set_title('Proporsi Kelas Target', fontsize=12, fontweight='bold')
+        plt.tight_layout()
+        st.pyplot(fig_pie)
+        plt.close(fig_pie)
+
+    dist_summary = pd.DataFrame({
+        'Kelas': target_labels,
+        'Jumlah': target_values,
+        'Proporsi (%)': [f"{v/total_data*100:.1f}%" for v in target_values]
+    })
+    st.dataframe(dist_summary, use_container_width=True, hide_index=True)
+
+    if st.button("🚀 Proses Analisis", type="primary", use_container_width=True):
+        if len(selected_train_features) < 1:
+            st.error("Pilih minimal 1 fitur untuk melatih model!")
+        else:
+            st.session_state.run_config = {
+                'mode': 'Primer',
+                'df_raw': df_raw,
+                'dataset_name': selected_file['original_filename'],
+                'target_col': target_col,
+                'selected_train_features': selected_train_features,
+                'test_size': test_size,
+                'max_depth': max_depth,
+                'use_ig_selection': use_ig_selection,
+                'ig_threshold': ig_threshold
+            }
+            st.session_state.current_page = 'Hasil Prediksi'
+            st.rerun()
+
+# ── HALAMAN HASIL PREDIKSI ───────────────────────────────────────────────
+
+def show_prediction_results():
+    st.title("📈 Hasil Analisis Prediksi")
+    
+    if st.button("⬅️ Kembali ke Dashboard"):
+        st.session_state.current_page = 'Dashboard Riwayat'
+        st.rerun()
+        
+    if 'run_config' not in st.session_state:
+        st.warning("Tidak ada data hasil prediksi. Silakan jalankan konfigurasi terlebih dahulu.")
+        return
+        
+    config = st.session_state.run_config
+    
+    # Run the model logic based on mode
+    # Note: DB saving is handled inside the run mode functions to get accuracy metrics.
+    # To prevent duplicate saving on reruns, we pass a flag to the function.
+    is_new_run = not config.get('is_saved', False)
+    
+    if config['mode'] == 'Eksperimen':
+        _run_experiment_mode(config['df_raw'])
+    else:
+        _run_primary_mode(config, is_new_run=is_new_run)
+        
+    if is_new_run:
+        st.session_state.run_config['is_saved'] = True
+
 
 
 def _show_intro_screen(features_uci):
@@ -820,283 +1081,484 @@ def _run_experiment_mode(df_raw, model_uci, scaler_uci, features_uci):
             st.exception(e)
 
 
-def _run_primary_mode(df_raw):
-    """Mode 2: Data Primer (Train On-the-fly)."""
+def _run_primary_mode(config, is_new_run=False):
+    """Mode 2: Data Primer (Train On-the-fly). Menerima config dict dari halaman konfigurasi."""
     st.header("📝 Evaluasi Data Primer SMK Tunas Teknologi (Model Training)")
 
-    columns_list = list(df_raw.columns)
+    # Ekstrak konfigurasi dari config dict
+    df_raw = config['df_raw']
+    target_col = config['target_col']
+    selected_train_features = config['selected_train_features']
+    test_size = config['test_size']
+    max_depth = config['max_depth']
+    use_ig_selection = config['use_ig_selection']
+    ig_threshold = config['ig_threshold']
+    dataset_name = config['dataset_name']
 
-    st.subheader("⚙️ Konfigurasi Pembuatan Model C4.5")
+    st.markdown("---")
+    with st.spinner("Melatih Model C4.5 (Decision Tree) dan membuat visualisasi..."):
 
-    col_cfg1, col_cfg2 = st.columns(2)
+        df_model = df_raw.copy()
 
-    with col_cfg1:
-        default_target_idx = 0
-        for idx, col in enumerate(columns_list):
-            if col.lower() in ['status', 'target', 'label']:
-                default_target_idx = idx
-                break
-        target_col = st.selectbox(
-            "Pilih Kolom Target (Y)",
-            options=columns_list,
-            index=default_target_idx
-        )
-
-        default_features = [col for col in columns_list if col != target_col]
-
-        selected_train_features = st.multiselect(
-            "Pilih Parameter Fitur (X)",
-            options=default_features,
-            default=default_features,
-            help="Pilih fitur-fitur yang akan digunakan sebagai dasar pembelajaran C4.5."
-        )
-
-    with col_cfg2:
-        test_size = st.slider("Ukuran Data Testing (%)", min_value=10, max_value=50, value=20, step=5) / 100.0
-        max_depth = st.slider("Kedalaman Maksimum Pohon (Max Depth)", min_value=3, max_value=15, value=7)
-
-        use_ig_selection = st.checkbox("Aktifkan Seleksi Fitur otomatis dengan Information Gain", value=False,
-                                        help="Model hanya akan menggunakan fitur yang memiliki Information Gain >= threshold.")
-        ig_threshold = 0.0
-        if use_ig_selection:
-            ig_threshold = st.slider("Threshold Information Gain", min_value=0.0, max_value=0.2, value=0.05, step=0.01)
-
-    # Start Training
-    if st.button("Latih Model C4.5 & Tampilkan Dashboard 🚀"):
-        if len(selected_train_features) < 1:
-            st.error("Pilih minimal 1 fitur untuk melatih model!")
-        else:
-            st.markdown("---")
-            with st.spinner("Melatih Model C4.5 (Decision Tree) dan membuat visualisasi..."):
-
-                df_model = df_raw.copy()
-
-                # --- PREPROCESSING ---
-                for col in selected_train_features:
-                    if df_model[col].isnull().sum() > 0:
-                        if df_model[col].dtype in ['int64', 'float64']:
-                            df_model[col].fillna(df_model[col].median(), inplace=True)
-                        else:
-                            df_model[col].fillna(df_model[col].mode()[0], inplace=True)
-
-                # Target Binarization
-                y_raw = df_model[target_col]
-                unique_targets = y_raw.unique()
-
-                dropout_val = None
-                for val in unique_targets:
-                    if str(val).strip().lower() == 'dropout':
-                        dropout_val = val
-                        break
-
-                if dropout_val is not None:
-                    y = y_raw.apply(lambda x: 1 if x == dropout_val else 0).values
-                    class_names = ['Non-Dropout', 'Dropout']
+        # --- PREPROCESSING ---
+        for col in selected_train_features:
+            if df_model[col].isnull().sum() > 0:
+                if df_model[col].dtype in ['int64', 'float64']:
+                    df_model[col].fillna(df_model[col].median(), inplace=True)
                 else:
-                    if 1 in unique_targets or '1' in unique_targets:
-                        y = y_raw.apply(lambda x: 1 if str(x) in ['1', '1.0'] else 0).values
-                        class_names = ['Non-Dropout', 'Dropout']
-                    else:
-                        sorted_unique = sorted(list(unique_targets))
-                        y = y_raw.map({sorted_unique[0]: 0, sorted_unique[1]: 1}).values
-                        class_names = [str(sorted_unique[0]), str(sorted_unique[1])]
+                    df_model[col].fillna(df_model[col].mode()[0], inplace=True)
 
-                X_all = df_model[selected_train_features]
+        # Target Binarization
+        y_raw = df_model[target_col]
+        unique_targets = y_raw.unique()
 
-                # Convert categorical to numerical
-                X_numeric = X_all.copy()
-                categorical_cols = []
-                for col in X_numeric.columns:
-                    if X_numeric[col].dtype == 'object' or X_numeric[col].dtype.name == 'category':
-                        X_numeric[col] = pd.factorize(X_numeric[col])[0]
-                        categorical_cols.append(col)
+        dropout_val = None
+        for val in unique_targets:
+            if str(val).strip().lower() == 'dropout':
+                dropout_val = val
+                break
 
-                if len(categorical_cols) > 0:
-                    st.info(f"ℹ️ Mengonversi kolom kategorikal berikut menjadi kode numerik untuk pelatihan: `{', '.join(categorical_cols)}`")
+        if dropout_val is not None:
+            y = y_raw.apply(lambda x: 1 if x == dropout_val else 0).values
+            class_names = ['Non-Dropout', 'Dropout']
+        else:
+            if 1 in unique_targets or '1' in unique_targets:
+                y = y_raw.apply(lambda x: 1 if str(x) in ['1', '1.0'] else 0).values
+                class_names = ['Non-Dropout', 'Dropout']
+            else:
+                sorted_unique = sorted(list(unique_targets))
+                y = y_raw.map({sorted_unique[0]: 0, sorted_unique[1]: 1}).values
+                class_names = [str(sorted_unique[0]), str(sorted_unique[1])]
 
-                # --- FEATURE SELECTION (INFORMATION GAIN) ---
-                features_to_use = selected_train_features.copy()
+        X_all = df_model[selected_train_features]
 
-                if use_ig_selection:
-                    try:
-                        ig_scores = mutual_info_classif(X_numeric, y, random_state=42)
-                        ig_df = pd.DataFrame({
-                            'Fitur': X_numeric.columns,
-                            'Information Gain': ig_scores
-                        }).sort_values('Information Gain', ascending=False).reset_index(drop=True)
+        # Convert categorical to numerical
+        X_numeric = X_all.copy()
+        categorical_cols = []
+        for col in X_numeric.columns:
+            if X_numeric[col].dtype == 'object' or X_numeric[col].dtype.name == 'category':
+                X_numeric[col] = pd.factorize(X_numeric[col])[0]
+                categorical_cols.append(col)
 
-                        selected_by_ig = ig_df[ig_df['Information Gain'] >= ig_threshold]['Fitur'].tolist()
+        if len(categorical_cols) > 0:
+            st.info(f"ℹ️ Mengonversi kolom kategorikal berikut menjadi kode numerik untuk pelatihan: `{', '.join(categorical_cols)}`")
 
-                        st.markdown("##### 🔍 Seleksi Fitur Information Gain")
+        # --- FEATURE SELECTION (INFORMATION GAIN) ---
+        features_to_use = selected_train_features.copy()
 
-                        fig_ig, ax_ig = plt.subplots(figsize=(10, max(5, len(ig_df) * 0.35)))
-                        colors_ig = ['#2ECC71' if v >= ig_threshold else '#E74C3C' for v in ig_df['Information Gain']]
-                        ax_ig.barh(ig_df['Fitur'][::-1], ig_df['Information Gain'][::-1], color=colors_ig[::-1], edgecolor='white', linewidth=0.5)
-                        ax_ig.axvline(x=ig_threshold, color='red', linestyle='--', linewidth=1, label=f'Threshold ({ig_threshold})')
-                        ax_ig.set_xlabel('Information Gain')
-                        ax_ig.set_title('Fase 3 — Information Gain per Fitur', fontsize=12, fontweight='bold')
-                        ax_ig.legend()
-                        plt.tight_layout()
-                        st.pyplot(fig_ig)
-                        plt.close(fig_ig)
+        if use_ig_selection:
+            try:
+                ig_scores = mutual_info_classif(X_numeric, y, random_state=42)
+                ig_df = pd.DataFrame({
+                    'Fitur': X_numeric.columns,
+                    'Information Gain': ig_scores
+                }).sort_values('Information Gain', ascending=False).reset_index(drop=True)
 
-                        if len(selected_by_ig) == 0:
-                            st.warning(f"⚠️ Tidak ada fitur dengan Information Gain >= {ig_threshold}. Seleksi fitur dilewati, menggunakan seluruh parameter yang dipilih.")
-                        else:
-                            features_to_use = selected_by_ig
-                            X_numeric = X_numeric[features_to_use]
-                            st.success(f"🎯 Seleksi Fitur selesai: Menggunakan {len(features_to_use)} fitur dari {len(selected_train_features)} fitur yang di-upload.")
+                selected_by_ig = ig_df[ig_df['Information Gain'] >= ig_threshold]['Fitur'].tolist()
 
-                    except Exception as e:
-                        st.error(f"Gagal menghitung Information Gain: {e}")
+                st.markdown("##### 🔍 Seleksi Fitur Information Gain")
 
-                # --- TRAIN TEST SPLIT & SCALING ---
-                X_train, X_test, y_train, y_test = train_test_split(
-                    X_numeric, y, test_size=test_size, random_state=42, stratify=y
-                )
+                fig_ig, ax_ig = plt.subplots(figsize=(10, max(5, len(ig_df) * 0.35)))
+                colors_ig = ['#2ECC71' if v >= ig_threshold else '#E74C3C' for v in ig_df['Information Gain']]
+                ax_ig.barh(ig_df['Fitur'][::-1], ig_df['Information Gain'][::-1], color=colors_ig[::-1], edgecolor='white', linewidth=0.5)
+                ax_ig.axvline(x=ig_threshold, color='red', linestyle='--', linewidth=1, label=f'Threshold ({ig_threshold})')
+                ax_ig.set_xlabel('Information Gain')
+                ax_ig.set_title('Fase 3 — Information Gain per Fitur', fontsize=12, fontweight='bold')
+                ax_ig.legend()
+                plt.tight_layout()
+                st.pyplot(fig_ig)
+                plt.close(fig_ig)
 
-                scaler = StandardScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
-                X_test_scaled = scaler.transform(X_test)
+                if len(selected_by_ig) == 0:
+                    st.warning(f"⚠️ Tidak ada fitur dengan Information Gain >= {ig_threshold}. Seleksi fitur dilewati, menggunakan seluruh parameter yang dipilih.")
+                else:
+                    features_to_use = selected_by_ig
+                    X_numeric = X_numeric[features_to_use]
+                    st.success(f"🎯 Seleksi Fitur selesai: Menggunakan {len(features_to_use)} fitur dari {len(selected_train_features)} fitur yang di-upload.")
 
-                X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_numeric.columns, index=X_train.index)
-                X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_numeric.columns, index=X_test.index)
+            except Exception as e:
+                st.error(f"Gagal menghitung Information Gain: {e}")
 
-                # --- TRAINING C4.5 ---
-                model_c45 = DecisionTreeClassifier(
-                    criterion='entropy',
-                    max_depth=max_depth,
-                    random_state=42
-                )
-                model_c45.fit(X_train_scaled, y_train)
+        # --- TRAIN TEST SPLIT & SCALING ---
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_numeric, y, test_size=test_size, random_state=42, stratify=y
+        )
 
-                y_pred = model_c45.predict(X_test_scaled)
-                y_pred_proba = model_c45.predict_proba(X_test_scaled)[:, 1]
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
 
-                # --- EVALUATION METRICS ---
-                acc = accuracy_score(y_test, y_pred)
-                prec = precision_score(y_test, y_pred, zero_division=0)
-                rec = recall_score(y_test, y_pred, zero_division=0)
-                f1 = f1_score(y_test, y_pred, zero_division=0)
+        X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_numeric.columns, index=X_train.index)
+        X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_numeric.columns, index=X_test.index)
 
-                st.subheader("📊 Dashboard Evaluasi Model C4.5")
+        # --- TRAINING C4.5 ---
+        model_c45 = DecisionTreeClassifier(
+            criterion='entropy',
+            max_depth=max_depth,
+            random_state=42
+        )
+        model_c45.fit(X_train_scaled, y_train)
 
-                m1, m2, m3, m4 = st.columns(4)
-                with m1:
-                    st.metric("Akurasi Model", f"{acc*100:.2f}%")
-                with m2:
-                    st.metric("Presisi Model", f"{prec*100:.2f}%")
-                with m3:
-                    st.metric("Recall (Sensitivitas)", f"{rec*100:.2f}%")
-                with m4:
-                    st.metric("F1-Score", f"{f1*100:.2f}%")
+        y_pred = model_c45.predict(X_test_scaled)
+        y_pred_proba = model_c45.predict_proba(X_test_scaled)[:, 1]
 
-                # Visualizations Row 1
-                vis_col1, vis_col2 = st.columns(2)
+        # --- EVALUATION METRICS ---
+        acc = accuracy_score(y_test, y_pred)
+        prec = precision_score(y_test, y_pred, zero_division=0)
+        rec = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
 
-                with vis_col1:
-                    st.markdown("##### 📌 Confusion Matrix")
-                    cm = confusion_matrix(y_test, y_pred)
-                    fig_cm, ax_cm = plt.subplots(figsize=(6, 4.5))
-                    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax_cm,
-                                xticklabels=class_names,
-                                yticklabels=class_names,
-                                annot_kws={'size': 14})
-                    ax_cm.set_xlabel('Prediksi')
-                    ax_cm.set_ylabel('Aktual')
-                    st.pyplot(fig_cm)
-                    plt.close(fig_cm)
+        # ══════════════════════════════════════════════════════════════
+        # BAGIAN 1: EVALUASI MODEL
+        # ══════════════════════════════════════════════════════════════
+        st.markdown("---")
+        st.header("📊 Fase 5 — Evaluasi Model C4.5")
 
-                with vis_col2:
-                    st.markdown("##### 📌 ROC Curve")
-                    fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
-                    roc_auc = auc(fpr, tpr)
+        # KPI Metrics Row
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("Akurasi", f"{acc*100:.2f}%")
+        with m2:
+            st.metric("Presisi", f"{prec*100:.2f}%")
+        with m3:
+            st.metric("Recall", f"{rec*100:.2f}%")
+        with m4:
+            st.metric("F1-Score", f"{f1*100:.2f}%")
 
-                    fig_roc, ax_roc = plt.subplots(figsize=(6, 4.5))
-                    ax_roc.plot(fpr, tpr, color='#E24B4A', linewidth=2, label=f'ROC Curve (AUC = {roc_auc:.4f})')
-                    ax_roc.plot([0, 1], [0, 1], color='gray', linestyle='--')
-                    ax_roc.fill_between(fpr, tpr, alpha=0.15, color='#E24B4A')
-                    ax_roc.set_xlabel('False Positive Rate')
-                    ax_roc.set_ylabel('True Positive Rate')
-                    ax_roc.legend(loc='lower right')
-                    st.pyplot(fig_roc)
-                    plt.close(fig_roc)
+        # Confusion Matrix + Ringkasan Metrik Bar Chart
+        eval_col1, eval_col2 = st.columns(2)
 
-                # Tree visualization
-                st.markdown("##### 📌 Visualisasi Struktur Pohon Keputusan C4.5")
-                fig_tree, ax_tree = plt.subplots(figsize=(24, 10), dpi=150)
-                plot_tree(
-                    model_c45,
-                    feature_names=X_numeric.columns.tolist(),
-                    class_names=class_names,
-                    filled=True,
-                    rounded=True,
-                    proportion=True,
-                    fontsize=7,
-                    ax=ax_tree
-                )
-                st.pyplot(fig_tree)
-                plt.close(fig_tree)
+        with eval_col1:
+            st.markdown("##### 📌 Confusion Matrix")
+            cm = confusion_matrix(y_test, y_pred)
+            fig_cm, ax_cm = plt.subplots(figsize=(6, 4.5))
+            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax_cm,
+                        xticklabels=class_names,
+                        yticklabels=class_names,
+                        annot_kws={'size': 14})
+            ax_cm.set_xlabel('Prediksi')
+            ax_cm.set_ylabel('Aktual')
+            ax_cm.set_title('Confusion Matrix', fontsize=12, fontweight='bold')
+            plt.tight_layout()
+            st.pyplot(fig_cm)
+            plt.close(fig_cm)
 
-                # Feature Importance & Correlation
-                vis_col3, vis_col4 = st.columns(2)
+        with eval_col2:
+            st.markdown("##### 📌 Ringkasan Metrik Evaluasi")
+            metric_names = ['Akurasi', 'Presisi', 'Recall', 'F1-Score']
+            metric_values = [acc*100, prec*100, rec*100, f1*100]
+            metric_colors = ['#3498DB', '#2ECC71', '#E67E22', '#E74C3C']
 
-                with vis_col3:
-                    st.markdown("##### 📌 Tingkat Kepentingan Fitur (Feature Importance)")
-                    importances = pd.Series(model_c45.feature_importances_, index=X_numeric.columns)
-                    importances = importances.sort_values(ascending=True)
+            fig_bar, ax_bar = plt.subplots(figsize=(6, 4.5))
+            bars_m = ax_bar.bar(metric_names, metric_values, color=metric_colors,
+                               edgecolor='white', linewidth=1.5, width=0.6)
+            # Tambah label di atas bar
+            for bar, val in zip(bars_m, metric_values):
+                ax_bar.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 1,
+                           f'{val:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=11)
+            # Garis target minimum
+            ax_bar.axhline(y=80, color='red', linestyle='--', linewidth=1.2, label='Target minimum (80%)')
+            ax_bar.set_ylabel('Nilai (%)', fontsize=11)
+            ax_bar.set_ylim(0, max(metric_values) + 15)
+            ax_bar.set_title('Ringkasan Metrik Evaluasi', fontsize=12, fontweight='bold')
+            ax_bar.legend(loc='upper right', fontsize=9)
+            ax_bar.spines['top'].set_visible(False)
+            ax_bar.spines['right'].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig_bar)
+            plt.close(fig_bar)
 
-                    fig_fi, ax_fi = plt.subplots(figsize=(7, max(4.5, len(importances)*0.35)))
-                    colors_fi = plt.cm.RdYlGn(np.linspace(0.2, 0.9, len(importances)))
-                    importances.plot(kind='barh', color=colors_fi, edgecolor='white', linewidth=0.5, ax=ax_fi)
-                    ax_fi.set_xlabel('Importance Score')
-                    ax_fi.set_title('Feature Importance (C4.5)')
-                    plt.tight_layout()
-                    st.pyplot(fig_fi)
-                    plt.close(fig_fi)
+        # ROC Curve
+        st.markdown("##### 📌 ROC Curve")
+        fig_roc, ax_roc = plt.subplots(figsize=(8, 5))
+        fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+        roc_auc = auc(fpr, tpr)
+        ax_roc.plot(fpr, tpr, color='#E24B4A', linewidth=2, label=f'ROC Curve (AUC = {roc_auc:.4f})')
+        ax_roc.plot([0, 1], [0, 1], color='gray', linestyle='--')
+        ax_roc.fill_between(fpr, tpr, alpha=0.15, color='#E24B4A')
+        ax_roc.set_xlabel('False Positive Rate')
+        ax_roc.set_ylabel('True Positive Rate')
+        ax_roc.set_title('ROC Curve', fontsize=12, fontweight='bold')
+        ax_roc.legend(loc='lower right')
+        plt.tight_layout()
+        st.pyplot(fig_roc)
+        plt.close(fig_roc)
 
-                with vis_col4:
-                    st.markdown("##### 📌 Heatmap Korelasi Fitur Terpilih")
-                    fig_corr, ax_corr = plt.subplots(figsize=(7, 5))
-                    corr_mat = X_numeric.corr()
-                    mask = np.triu(np.ones_like(corr_mat, dtype=bool))
-                    sns.heatmap(corr_mat, mask=mask, annot=False, cmap='RdBu_r', center=0, linewidths=0.5, ax=ax_corr)
-                    ax_corr.set_title("Heatmap Korelasi Fitur Model")
-                    plt.tight_layout()
-                    st.pyplot(fig_corr)
-                    plt.close(fig_corr)
+        # ── Distribusi Hasil Prediksi vs Aktual ──
+        st.markdown("##### 📌 Perbandingan Data Aktual vs Prediksi")
+        cmp_col1, cmp_col2 = st.columns(2)
 
-                # Classification report
-                with st.expander("📋 Laporan Klasifikasi Lengkap (Classification Report)"):
-                    st.text("=== CLASSIFICATION REPORT ===")
-                    st.text(classification_report(y_test, y_pred, target_names=class_names))
+        with cmp_col1:
+            st.markdown("###### Distribusi Aktual (Data Testing)")
+            actual_counts = pd.Series(y_test).value_counts().sort_index()
+            actual_labels = [class_names[i] for i in actual_counts.index]
+            actual_values = actual_counts.values
 
-                # --- BATCH PREDICTIONS ---
-                st.markdown("---")
-                st.subheader("📋 Hasil Prediksi Batch untuk Seluruh Data")
+            fig_act, ax_act = plt.subplots(figsize=(6, 4.5))
+            act_colors = ['#2ECC71', '#E74C3C'][:len(actual_labels)]
+            bars_a = ax_act.bar(actual_labels, actual_values, color=act_colors, edgecolor='white', linewidth=1.5)
+            for bar, val in zip(bars_a, actual_values):
+                ax_act.text(bar.get_x() + bar.get_width()/2., bar.get_height() + max(actual_values)*0.01,
+                           f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+            ax_act.set_ylabel('Jumlah Siswa')
+            ax_act.set_title('Distribusi Aktual (Data Testing)', fontsize=11, fontweight='bold')
+            ax_act.spines['top'].set_visible(False)
+            ax_act.spines['right'].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig_act)
+            plt.close(fig_act)
 
-                X_all_scaled = scaler.transform(X_numeric)
-                all_preds = model_c45.predict(X_all_scaled)
-                all_probs = model_c45.predict_proba(X_all_scaled)[:, 1]
+        with cmp_col2:
+            st.markdown("###### Distribusi Prediksi Model C4.5")
+            pred_counts = pd.Series(y_pred).value_counts().sort_index()
+            pred_labels = [class_names[i] for i in pred_counts.index]
+            pred_values = pred_counts.values
 
-                df_result = df_raw.copy()
-                df_result['Hasil_Prediksi_Numerik'] = all_preds
-                df_result['Hasil_Prediksi'] = df_result['Hasil_Prediksi_Numerik'].map({1: 'Dropout', 0: 'Non-Dropout'})
-                df_result['Probabilitas_Dropout'] = all_probs
+            fig_prd, ax_prd = plt.subplots(figsize=(6, 4.5))
+            prd_colors = ['#2ECC71', '#E74C3C'][:len(pred_labels)]
+            bars_p = ax_prd.bar(pred_labels, pred_values, color=prd_colors, edgecolor='white', linewidth=1.5)
+            for bar, val in zip(bars_p, pred_values):
+                ax_prd.text(bar.get_x() + bar.get_width()/2., bar.get_height() + max(pred_values)*0.01,
+                           f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+            ax_prd.set_ylabel('Jumlah Siswa')
+            ax_prd.set_title('Distribusi Prediksi Model C4.5', fontsize=11, fontweight='bold')
+            ax_prd.spines['top'].set_visible(False)
+            ax_prd.spines['right'].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig_prd)
+            plt.close(fig_prd)
 
-                st.dataframe(df_result.head(100))
+        # ── CROSS-VALIDATION (10-Fold) ──
+        st.markdown("---")
+        st.markdown("##### 📌 Cross-Validation (10-Fold)")
 
-                towrite = io.BytesIO()
-                df_result.to_csv(towrite, index=False, encoding='utf-8')
-                towrite.seek(0)
+        cv_model = DecisionTreeClassifier(criterion='entropy', max_depth=max_depth, random_state=42)
+        X_all_scaled_cv = scaler.fit_transform(X_numeric)
 
-                st.download_button(
-                    label="📥 Unduh Hasil Prediksi Lengkap (CSV)",
-                    data=towrite,
-                    file_name="hasil_prediksi_data_primer.csv",
-                    mime="text/csv"
-                )
+        cv_accuracy = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='accuracy')
+        cv_precision = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='precision')
+        cv_recall = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='recall')
+        cv_f1 = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='f1')
 
+        # Tabel hasil per fold
+        cv_table = pd.DataFrame({
+            'Fold': [f'Fold {i+1}' for i in range(10)],
+            'Akurasi (%)': [f'{v*100:.2f}' for v in cv_accuracy],
+            'Presisi (%)': [f'{v*100:.2f}' for v in cv_precision],
+            'Recall (%)': [f'{v*100:.2f}' for v in cv_recall],
+            'F1-Score (%)': [f'{v*100:.2f}' for v in cv_f1],
+        })
+        # Tambah baris rata-rata
+        avg_row = pd.DataFrame({
+            'Fold': ['**Rata-rata**'],
+            'Akurasi (%)': [f'{cv_accuracy.mean()*100:.2f}'],
+            'Presisi (%)': [f'{cv_precision.mean()*100:.2f}'],
+            'Recall (%)': [f'{cv_recall.mean()*100:.2f}'],
+            'F1-Score (%)': [f'{cv_f1.mean()*100:.2f}'],
+        })
+        cv_table = pd.concat([cv_table, avg_row], ignore_index=True)
+        st.dataframe(cv_table, use_container_width=True, hide_index=True)
+
+        # Visualisasi CV - line chart per fold
+        cv_vis_col1, cv_vis_col2 = st.columns(2)
+        with cv_vis_col1:
+            fig_cv, ax_cv = plt.subplots(figsize=(7, 4.5))
+            folds = range(1, 11)
+            ax_cv.plot(folds, cv_accuracy*100, 'o-', color='#3498DB', label='Akurasi', linewidth=2, markersize=6)
+            ax_cv.plot(folds, cv_precision*100, 's-', color='#2ECC71', label='Presisi', linewidth=2, markersize=6)
+            ax_cv.plot(folds, cv_recall*100, '^-', color='#E67E22', label='Recall', linewidth=2, markersize=6)
+            ax_cv.plot(folds, cv_f1*100, 'D-', color='#E74C3C', label='F1-Score', linewidth=2, markersize=6)
+            ax_cv.axhline(y=80, color='gray', linestyle='--', alpha=0.5, label='Target (80%)')
+            ax_cv.set_xlabel('Fold', fontsize=11)
+            ax_cv.set_ylabel('Nilai (%)', fontsize=11)
+            ax_cv.set_title('Performa per Fold (10-Fold CV)', fontsize=12, fontweight='bold')
+            ax_cv.set_xticks(folds)
+            ax_cv.legend(fontsize=8, loc='lower left')
+            ax_cv.set_ylim(max(0, min(cv_accuracy.min(), cv_recall.min())*100 - 10), 105)
+            ax_cv.spines['top'].set_visible(False)
+            ax_cv.spines['right'].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig_cv)
+            plt.close(fig_cv)
+
+        with cv_vis_col2:
+            st.markdown("###### Ringkasan 10-Fold CV")
+            cv_kpi1, cv_kpi2 = st.columns(2)
+            with cv_kpi1:
+                st.metric("Rata-rata Akurasi", f"{cv_accuracy.mean()*100:.2f}%", f"± {cv_accuracy.std()*100:.2f}%")
+                st.metric("Rata-rata Presisi", f"{cv_precision.mean()*100:.2f}%", f"± {cv_precision.std()*100:.2f}%")
+            with cv_kpi2:
+                st.metric("Rata-rata Recall", f"{cv_recall.mean()*100:.2f}%", f"± {cv_recall.std()*100:.2f}%")
+                st.metric("Rata-rata F1-Score", f"{cv_f1.mean()*100:.2f}%", f"± {cv_f1.std()*100:.2f}%")
+
+        # Classification report
+        with st.expander("📋 Laporan Klasifikasi Lengkap (Classification Report)"):
+            st.text("=== CLASSIFICATION REPORT ===")
+            st.text(classification_report(y_test, y_pred, target_names=class_names))
+
+        # ══════════════════════════════════════════════════════════════
+        # BAGIAN 2: HASIL (Pohon, Feature Importance, Korelasi, Prediksi)
+        # ══════════════════════════════════════════════════════════════
+        st.markdown("---")
+        st.header("🌳 Hasil — Model & Prediksi")
+
+        # Tree visualization
+        st.markdown("##### 📌 Visualisasi Struktur Pohon Keputusan C4.5")
+        fig_tree, ax_tree = plt.subplots(figsize=(24, 10), dpi=150)
+        plot_tree(
+            model_c45,
+            feature_names=X_numeric.columns.tolist(),
+            class_names=class_names,
+            filled=True,
+            rounded=True,
+            proportion=True,
+            fontsize=7,
+            ax=ax_tree
+        )
+        st.pyplot(fig_tree)
+        plt.close(fig_tree)
+
+        # Top Feature Importance & Heatmap Korelasi
+        vis_col3, vis_col4 = st.columns(2)
+
+        with vis_col3:
+            st.markdown("##### 📌 Top Fitur Berdasarkan Importance")
+            importances = pd.Series(model_c45.feature_importances_, index=X_numeric.columns)
+            importances = importances.sort_values(ascending=True)
+
+            fig_fi, ax_fi = plt.subplots(figsize=(7, max(4.5, len(importances)*0.35)))
+            colors_fi = plt.cm.RdYlGn(np.linspace(0.2, 0.9, len(importances)))
+            importances.plot(kind='barh', color=colors_fi, edgecolor='white', linewidth=0.5, ax=ax_fi)
+            # Label di ujung bar
+            for i, (val, name) in enumerate(zip(importances.values, importances.index)):
+                ax_fi.text(val + importances.max()*0.01, i, f'{val:.4f}', va='center', fontsize=9)
+            ax_fi.set_xlabel('Importance Score')
+            ax_fi.set_title('Top Fitur Berdasarkan Importance (C4.5)', fontsize=11, fontweight='bold')
+            ax_fi.spines['top'].set_visible(False)
+            ax_fi.spines['right'].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig_fi)
+            plt.close(fig_fi)
+
+            # Tabel Feature Importance
+            fi_table = pd.DataFrame({
+                'Rank': range(1, len(importances)+1),
+                'Fitur': importances.sort_values(ascending=False).index.tolist(),
+                'Importance Score': [f'{v:.4f}' for v in importances.sort_values(ascending=False).values]
+            })
+            st.dataframe(fi_table, use_container_width=True, hide_index=True)
+
+        with vis_col4:
+            st.markdown("##### 📌 Heatmap Korelasi Fitur Terpilih")
+            fig_corr, ax_corr = plt.subplots(figsize=(7, 5))
+            corr_mat = X_numeric.corr()
+            mask = np.triu(np.ones_like(corr_mat, dtype=bool))
+            sns.heatmap(corr_mat, mask=mask, annot=False, cmap='RdBu_r', center=0, linewidths=0.5, ax=ax_corr)
+            ax_corr.set_title("Heatmap Korelasi Fitur Model", fontsize=11, fontweight='bold')
+            plt.tight_layout()
+            st.pyplot(fig_corr)
+            plt.close(fig_corr)
+
+        # --- BATCH PREDICTIONS ---
+        st.markdown("---")
+        st.subheader("📋 Hasil Prediksi Batch untuk Seluruh Data")
+
+        X_all_scaled = scaler.transform(X_numeric)
+        all_preds = model_c45.predict(X_all_scaled)
+        all_probs = model_c45.predict_proba(X_all_scaled)[:, 1]
+
+        df_result = df_raw.copy()
+        df_result['Hasil_Prediksi_Numerik'] = all_preds
+        df_result['Hasil_Prediksi'] = df_result['Hasil_Prediksi_Numerik'].map(
+            {i: name for i, name in enumerate(class_names)}
+        )
+        df_result['Probabilitas_Dropout'] = all_probs
+
+        # KPI ringkasan prediksi batch
+        batch_total = len(df_result)
+        batch_counts = df_result['Hasil_Prediksi'].value_counts()
+
+        batch_cols = st.columns(len(class_names) + 1)
+        with batch_cols[0]:
+            st.metric("Total Data", f"{batch_total} Siswa")
+        for i, name in enumerate(class_names):
+            cnt = batch_counts.get(name, 0)
+            with batch_cols[i+1]:
+                pct = cnt/batch_total*100 if batch_total > 0 else 0
+                st.metric(f"Prediksi {name}", f"{cnt} Siswa", f"{pct:.1f}%")
+
+        # Visualisasi distribusi prediksi batch
+        batch_labels = batch_counts.index.tolist()
+        batch_values = batch_counts.values.tolist()
+        batch_colors = ['#2ECC71', '#E74C3C', '#3498DB', '#F39C12'][:len(batch_labels)]
+
+        batch_vis1, batch_vis2 = st.columns(2)
+
+        with batch_vis1:
+            st.markdown("##### Distribusi Hasil Prediksi (Seluruh Data)")
+            fig_bp, ax_bp = plt.subplots(figsize=(7, 5))
+            bars_bp = ax_bp.bar(batch_labels, batch_values, color=batch_colors, edgecolor='white', linewidth=1.5)
+            for bar, val in zip(bars_bp, batch_values):
+                ax_bp.text(bar.get_x() + bar.get_width()/2., bar.get_height() + batch_total*0.01,
+                          f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+            ax_bp.set_ylabel('Jumlah Siswa', fontsize=11)
+            ax_bp.set_title('Distribusi Hasil Prediksi (Seluruh Data)', fontsize=12, fontweight='bold')
+            ax_bp.spines['top'].set_visible(False)
+            ax_bp.spines['right'].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig_bp)
+            plt.close(fig_bp)
+
+        with batch_vis2:
+            st.markdown("##### Proporsi Hasil Prediksi")
+            fig_bpie, ax_bpie = plt.subplots(figsize=(7, 5))
+            wedges, texts, autotexts = ax_bpie.pie(
+                batch_values, labels=batch_labels, colors=batch_colors,
+                autopct='%1.1f%%', startangle=140, pctdistance=0.75,
+                textprops={'fontsize': 11, 'fontweight': 'bold'}
+            )
+            for autotext in autotexts:
+                autotext.set_fontsize(10)
+            ax_bpie.axis('equal')
+            ax_bpie.set_title('Proporsi Hasil Prediksi', fontsize=12, fontweight='bold')
+            plt.tight_layout()
+            st.pyplot(fig_bpie)
+            plt.close(fig_bpie)
+
+        st.dataframe(df_result, use_container_width=True)
+
+        towrite = io.BytesIO()
+        df_result.to_csv(towrite, index=False, encoding='utf-8')
+        towrite.seek(0)
+
+        st.download_button(
+            label="📥 Unduh Hasil Prediksi Lengkap (CSV)",
+            data=towrite,
+            file_name="hasil_prediksi_data_primer.csv",
+            mime="text/csv"
+        )
+
+        # ── SIMPAN KE DATABASE ──
+        if is_new_run:
+            import json as json_lib
+            db.save_prediction_history(
+                run_by=st.session_state.user_id,
+                dataset_name=dataset_name,
+                mode_analisis='Data Primer (Train On-the-fly)',
+                accuracy=float(acc * 100),
+                precision=float(prec * 100),
+                recall=float(rec * 100),
+                f1_score=float(f1 * 100),
+                config_json=json_lib.dumps({
+                    'max_depth': max_depth,
+                    'use_ig_selection': use_ig_selection,
+                    'ig_threshold': ig_threshold,
+                    'test_size': test_size,
+                    'features': selected_train_features,
+                    'target': target_col
+                })
+            )
+            st.toast("✅ Hasil prediksi berhasil disimpan ke riwayat!")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ── MAIN APP FLOW ─────────────────────────────────────────────────────────────
@@ -1110,15 +1572,22 @@ else:
     page = st.session_state.current_page
     role = st.session_state.role
 
-    if page == 'Dashboard Prediksi':
-        show_prediction_dashboard()
+    if page == 'Dashboard Riwayat':
+        show_dashboard_riwayat()
+    elif page == 'Konfigurasi Prediksi':
+        if role in ['Admin', 'BK']:
+            show_prediction_config()
+        else:
+            st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
+    elif page == 'Hasil Prediksi':
+        show_prediction_results()
     elif page == 'Upload File':
-        if role in ['Admin', 'Wali Kelas']:
+        if role in ['Admin', 'Wali Kelas', 'BK']:
             show_upload_page()
         else:
             st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
     elif page == 'Manajemen File':
-        if role in ['Admin', 'Wali Kelas']:
+        if role in ['Admin', 'Wali Kelas', 'BK']:
             show_file_management_page()
         else:
             st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
@@ -1128,4 +1597,4 @@ else:
         else:
             st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
     else:
-        show_prediction_dashboard()
+        show_dashboard_riwayat()
