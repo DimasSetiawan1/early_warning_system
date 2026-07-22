@@ -40,7 +40,7 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             nama_lengkap TEXT NOT NULL,
-            role TEXT NOT NULL CHECK(role IN ('Admin', 'BK', 'Wali Kelas')),
+            role TEXT NOT NULL CHECK(role IN ('BK', 'Guru')),
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -85,9 +85,8 @@ def init_db():
 
     if count == 0:
         default_users = [
-            ('admin', hash_password('admin123'), 'Administrator', 'Admin'),
             ('bk', hash_password('admin123'), 'Guru BK', 'BK'),
-            ('walikelas', hash_password('admin123'), 'Wali Kelas 1', 'Wali Kelas'),
+            ('guru', hash_password('admin123'), 'Guru Mata Pelajaran', 'Guru'),
         ]
         cursor.executemany(
             "INSERT INTO users (username, password, nama_lengkap, role) VALUES (?, ?, ?, ?)",

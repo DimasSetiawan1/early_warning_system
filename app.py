@@ -26,7 +26,7 @@ db.init_db()
 
 # Set Page Config
 st.set_page_config(
-    page_title="Dashboard Prediksi Mahasiswa/Siswa Dropout",
+    page_title="Dasbor Prediksi Mahasiswa/Siswa Dropout",
     page_icon="🎓",
     layout="wide"
 )
@@ -50,7 +50,7 @@ if 'role' not in st.session_state:
 if 'nama_lengkap' not in st.session_state:
     st.session_state.nama_lengkap = None
 if 'current_page' not in st.session_state:
-    st.session_state.current_page = 'Dashboard Riwayat'
+    st.session_state.current_page = 'Dasbor Riwayat'
 
 
 # ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
@@ -112,27 +112,27 @@ def show_login_page():
     with col_center:
         st.markdown("---")
         st.markdown(
-            "<h1 style='text-align: center;'>🎓 Early Warning System</h1>",
+            "<h1 style='text-align: center;'>Sistem Peringatan Dini</h1>",
             unsafe_allow_html=True
         )
         st.markdown(
-            "<h4 style='text-align: center; color: gray;'>Dashboard Prediksi Siswa Dropout</h4>",
+            "<h4 style='text-align: center; color: gray;'>Dasbor Prediksi Siswa Putus Sekolah</h4>",
             unsafe_allow_html=True
         )
-        st.markdown(
-            "<p style='text-align: center; color: gray;'>Silakan login untuk mengakses dashboard</p>",
-            unsafe_allow_html=True
-        )
+        # st.markdown(
+        #     "<p style='text-align: center; color: gray;'>Silakan login untuk mengakses dashboard</p>",
+        #     unsafe_allow_html=True
+        # )
         st.markdown("---")
 
         with st.form("login_form", clear_on_submit=False):
-            username = st.text_input("👤 Username", placeholder="Masukkan username")
-            password = st.text_input("🔒 Password", type="password", placeholder="Masukkan password")
-            submitted = st.form_submit_button("🔑 Login", use_container_width=True)
+            username = st.text_input("👤 Nama Pengguna", placeholder="Masukkan nama pengguna")
+            password = st.text_input("🔒 Kata Sandi", type="password", placeholder="Masukkan kata sandi")
+            submitted = st.form_submit_button("🔑 Masuk", use_container_width=True)
 
             if submitted:
                 if not username or not password:
-                    st.error("⚠️ Username dan password harus diisi!")
+                    st.error("⚠️ Nama Pengguna dan kata sandi harus diisi!")
                 else:
                     user = db.authenticate_user(username, password)
                     if user:
@@ -141,18 +141,20 @@ def show_login_page():
                         st.session_state.username = user['username']
                         st.session_state.role = user['role']
                         st.session_state.nama_lengkap = user['nama_lengkap']
-                        st.session_state.current_page = 'Dashboard Prediksi'
+                        if user['role'] == 'Guru':
+                            st.session_state.current_page = 'Unggah Berkas'
+                        else:
+                            st.session_state.current_page = 'Dasbor Riwayat'
                         st.rerun()
                     else:
-                        st.error("❌ Username atau password salah!")
+                        st.error("❌ Nama Pengguna atau kata sandi salah!")
 
         st.markdown("---")
         st.markdown(
             "<p style='text-align: center; font-size: 0.8em; color: gray;'>"
             "Akun Default:<br>"
-            "Admin: <code>admin</code> / <code>admin123</code><br>"
             "BK: <code>bk</code> / <code>admin123</code><br>"
-            "Wali Kelas: <code>walikelas</code> / <code>admin123</code>"
+            "Guru: <code>guru</code> / <code>admin123</code>"
             "</p>",
             unsafe_allow_html=True
         )
@@ -165,7 +167,7 @@ def show_sidebar():
     with st.sidebar:
         st.markdown(f"### 👋 Selamat Datang!")
         st.markdown(f"**{st.session_state.nama_lengkap}**")
-        st.markdown(f"🏷️ Role: `{st.session_state.role}`")
+        st.markdown(f"🏷️ Peran: `{st.session_state.role}`")
         st.markdown("---")
 
         st.markdown("### 📋 Menu Navigasi")
@@ -173,26 +175,16 @@ def show_sidebar():
         role = st.session_state.role
 
         # Menu items based on role
-        if role == 'Admin':
+        if role == 'BK':
             menu_items = [
-                '📊 Dashboard Riwayat',
+                '📊 Dasbor Riwayat',
                 '⚙️ Konfigurasi Prediksi',
-                '📤 Upload File',
-                '📁 Manajemen File',
-                '👥 Manajemen User'
+                '👥 Manajemen Pengguna'
             ]
-        elif role == 'BK':
+        elif role == 'Guru':
             menu_items = [
-                '📊 Dashboard Riwayat',
-                '⚙️ Konfigurasi Prediksi',
-                '📤 Upload File',
-                '📁 Manajemen File'
-            ]
-        elif role == 'Wali Kelas':
-            menu_items = [
-                '📊 Dashboard Riwayat',
-                '📤 Upload File',
-                '📁 Manajemen File'
+                '📤 Unggah Berkas',
+                '📁 Manajemen Berkas'
             ]
         else:
             menu_items = []
@@ -206,7 +198,7 @@ def show_sidebar():
 
         st.markdown("---")
 
-        if st.button("🚪 Logout", use_container_width=True, type="primary"):
+        if st.button("🚪 Keluar", use_container_width=True, type="primary"):
             for key in ['logged_in', 'user_id', 'username', 'role', 'nama_lengkap', 'current_page']:
                 if key in st.session_state:
                     del st.session_state[key]
@@ -216,13 +208,13 @@ def show_sidebar():
 # ── HALAMAN UPLOAD FILE ──────────────────────────────────────────────────────
 
 def show_upload_page():
-    """Halaman upload file dataset."""
-    st.header("📤 Upload File Dataset")
-    st.markdown("Upload file dataset siswa dalam format **CSV** atau **Excel (.xlsx)** untuk digunakan dalam analisis prediksi.")
+    """Halaman unggah berkas himpunan data."""
+    st.header("📤 Unggah Berkas Himpunan Data")
+    st.markdown("Unggah file dataset siswa dalam format **CSV** atau **Excel (.xlsx)** untuk digunakan dalam analisis prediksi.")
 
     with st.form("upload_form", clear_on_submit=True):
         uploaded_file = st.file_uploader(
-            "Pilih File Dataset",
+            "Pilih File Himpunan Data",
             type=["csv", "xlsx"],
             help="File berisi data siswa/mahasiswa untuk diprediksi."
         )
@@ -231,7 +223,7 @@ def show_upload_page():
             placeholder="Contoh: Data siswa kelas XII IPA semester genap 2024/2025",
             max_chars=500
         )
-        submitted = st.form_submit_button("📤 Upload File", use_container_width=True)
+        submitted = st.form_submit_button("📤 Unggah Berkas", use_container_width=True)
 
         if submitted and uploaded_file is not None:
             # Generate unique filename to avoid conflicts
@@ -262,10 +254,10 @@ def show_upload_page():
 
     # Tampilkan daftar file yang sudah diupload oleh user ini
     st.markdown("---")
-    st.subheader("📁 File Yang Sudah Anda Upload")
+    st.subheader("📁 File Yang Sudah Anda Unggah")
 
-    if st.session_state.role == 'Admin':
-        my_files = db.get_uploaded_files()  # Admin lihat semua
+    if st.session_state.role == 'BK':
+        my_files = db.get_uploaded_files()  # BK lihat semua
     else:
         my_files = db.get_uploaded_files(uploaded_by=st.session_state.user_id)
 
@@ -280,8 +272,8 @@ def show_upload_page():
                     st.markdown(f"**Ukuran:** {format_file_size(f['file_size'])}")
                     st.markdown(f"**Deskripsi:** {f['description'] or '-'}")
                 with col2:
-                    st.markdown(f"**Diupload oleh:** {f['uploader_name']} (`{f['uploader_username']}`)")
-                    st.markdown(f"**Tanggal Upload:** {format_datetime(f['uploaded_at'])}")
+                    st.markdown(f"**Diunggah oleh:** {f['uploader_name']} (`{f['uploader_username']}`)")
+                    st.markdown(f"**Tanggal Unggah:** {format_datetime(f['uploaded_at'])}")
                     st.markdown(f"**ID File:** {f['id']}")
 
 
@@ -289,18 +281,14 @@ def show_upload_page():
 
 def show_file_management_page():
     """Halaman manajemen file — tampilkan semua file, hapus sesuai permission."""
-    st.header("📁 Manajemen File Dataset")
+    st.header("📁 Manajemen File Himpunan Data")
 
     role = st.session_state.role
     user_id = st.session_state.user_id
 
-    # Admin: lihat semua | Wali Kelas: hanya miliknya
-    if role == 'Admin':
-        files = db.get_uploaded_files()
-        st.markdown("Menampilkan **semua** file yang terupload (mode Admin).")
-    else:
-        files = db.get_uploaded_files(uploaded_by=user_id)
-        st.markdown("Menampilkan file yang **Anda upload**.")
+    # BK: lihat semua | Guru: hanya miliknya
+    files = db.get_uploaded_files(uploaded_by=user_id)
+    st.markdown("Menampilkan file yang **Anda unggah**.")
 
     if not files:
         st.info("Belum ada file yang terupload.")
@@ -314,8 +302,8 @@ def show_file_management_page():
             'Nama File': f['original_filename'],
             'Ukuran': format_file_size(f['file_size']),
             'Diupload Oleh': f['uploader_name'],
-            'Role': f['uploader_role'],
-            'Tanggal Upload': format_datetime(f['uploaded_at']),
+            'Peran': f['uploader_role'],
+            'Tanggal Unggah': format_datetime(f['uploaded_at']),
             'Deskripsi': f['description'] or '-'
         })
 
@@ -327,7 +315,7 @@ def show_file_management_page():
     # Build list of deletable files
     deletable_files = []
     for f in files:
-        if role == 'Admin' or f['uploaded_by'] == user_id:
+        if f['uploaded_by'] == user_id:
             deletable_files.append(f)
 
     if not deletable_files:
@@ -354,10 +342,10 @@ def show_file_management_page():
 # ── HALAMAN MANAJEMEN USER (ADMIN ONLY) ──────────────────────────────────────
 
 def show_user_management_page():
-    """Halaman manajemen user — hanya untuk Admin."""
+    """Halaman manajemen user — hanya untuk BK."""
     st.header("👥 Manajemen User")
 
-    if st.session_state.role != 'Admin':
+    if st.session_state.role != 'BK':
         st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
         return
 
@@ -370,9 +358,9 @@ def show_user_management_page():
         for u in users:
             table_data.append({
                 'ID': u['id'],
-                'Username': u['username'],
+                'Nama Pengguna': u['username'],
                 'Nama Lengkap': u['nama_lengkap'],
-                'Role': u['role'],
+                'Peran': u['role'],
                 'Tanggal Dibuat': format_datetime(u['created_at']) if u['created_at'] else '-'
             })
         st.dataframe(pd.DataFrame(table_data), use_container_width=True, hide_index=True)
@@ -384,11 +372,11 @@ def show_user_management_page():
     with st.form("add_user_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
         with col1:
-            new_username = st.text_input("Username", placeholder="Masukkan username baru")
-            new_password = st.text_input("Password", type="password", placeholder="Masukkan password")
+            new_username = st.text_input("Nama Pengguna", placeholder="Masukkan nama pengguna baru")
+            new_password = st.text_input("Kata Sandi", type="password", placeholder="Masukkan kata sandi")
         with col2:
             new_nama = st.text_input("Nama Lengkap", placeholder="Masukkan nama lengkap")
-            new_role = st.selectbox("Role", options=['Admin', 'BK', 'Wali Kelas'])
+            new_role = st.selectbox("Peran", options=['BK', 'Guru'])
 
         if st.form_submit_button("➕ Tambah User", use_container_width=True):
             if not new_username or not new_password or not new_nama:
@@ -399,7 +387,7 @@ def show_user_management_page():
                     st.success(f"✅ User **{new_username}** ({new_role}) berhasil ditambahkan!")
                     st.rerun()
                 else:
-                    st.error(f"❌ Username **{new_username}** sudah digunakan!")
+                    st.error(f"❌ Nama Pengguna **{new_username}** sudah digunakan!")
 
     # ── Edit User ──
     st.markdown("---")
@@ -422,13 +410,13 @@ def show_user_management_page():
                     with col1:
                         edit_nama = st.text_input("Nama Lengkap", value=selected_user['nama_lengkap'])
                         edit_role = st.selectbox(
-                            "Role",
-                            options=['Admin', 'BK', 'Wali Kelas'],
-                            index=['Admin', 'BK', 'Wali Kelas'].index(selected_user['role'])
+                            "Peran",
+                            options=['BK', 'Guru'],
+                            index=['BK', 'Guru'].index(selected_user['role']) if selected_user['role'] in ['BK', 'Guru'] else 0
                         )
                     with col2:
                         edit_password = st.text_input(
-                            "Password Baru (kosongkan jika tidak diubah)",
+                            "Kata Sandi Baru (kosongkan jika tidak diubah)",
                             type="password",
                             placeholder="Biarkan kosong jika tidak ingin mengubah"
                         )
@@ -483,10 +471,10 @@ def show_dashboard_riwayat():
         #         'ID': h['id'],
         #         'Tanggal': format_datetime(h['run_at']),
         #         'Oleh': h.get('run_by_name', '-'),
-        #         'Dataset': h['dataset_name'],
+        #         'Himpunan Data': h['dataset_name'],
         #         'Mode': h['mode_analisis'],
         #         'Akurasi': f"{h['accuracy']:.2f}%" if h['accuracy'] else '-',
-        #         'F1-Score': f"{h['f1_score']:.2f}%" if h['f1_score'] else '-'
+        #         'Skor-F1': f"{h['f1_score']:.2f}%" if h['f1_score'] else '-'
         #     })
         # st.dataframe(pd.DataFrame(hist_data), use_container_width=True, hide_index=True)
 
@@ -535,7 +523,7 @@ def show_dashboard_riwayat():
             df_hist = load_file_from_path(matched_file['file_path'])
 
             if df_hist is None or target_col not in df_hist.columns:
-                st.warning("Dataset atau kolom target tidak dapat dimuat.")
+                st.warning("Himpunan Data atau kolom target tidak dapat dimuat.")
             else:
                 color_palette = ['#2ECC71', '#E74C3C', '#3498DB', '#F39C12', '#9B59B6', '#1ABC9C']
 
@@ -546,7 +534,7 @@ def show_dashboard_riwayat():
                 with m2:
                     st.metric("Presisi", f"{selected_h['precision']:.2f}%" if selected_h['precision'] else '-')
                 with m3:
-                    st.metric("Recall", f"{selected_h['recall']:.2f}%" if selected_h['recall'] else '-')
+                    st.metric("Daya Ingat", f"{selected_h['recall']:.2f}%" if selected_h['recall'] else '-')
                 with m4:
                     st.metric("F1-Score", f"{selected_h['f1_score']:.2f}%" if selected_h['f1_score'] else '-')
 
@@ -613,16 +601,11 @@ def show_prediction_config():
     # Load UCI pre-trained assets
     model_uci, scaler_uci, features_uci = load_uci_artifacts()
 
-    # Ambil file berdasarkan role
-    if role == 'Admin':
-        available_files = db.get_uploaded_files()
-    elif role == 'BK':
-        available_files = db.get_uploaded_files()
-    else:
-        available_files = []
+    # BK melihat semua file dataset
+    available_files = db.get_uploaded_files()
 
     if not available_files:
-        st.info("💡 **Belum ada file dataset yang tersedia.** Silakan upload file terlebih dahulu melalui menu **Upload File**.")
+        st.info("💡 **Belum ada file dataset yang tersedia.** Silakan upload file terlebih dahulu melalui menu **Unggah Berkas**.")
         return
 
     st.markdown("---")
@@ -632,7 +615,7 @@ def show_prediction_config():
         mode = st.selectbox(
             "🛠️ Pilih Mode Analisis",
             options=[
-                "Eksperimen (UCI Dataset - Pre-trained Model)",
+                "Eksperimen (UCI Himpunan Data - Pre-trained Model)",
                 "Data Primer (SMK Tunas Teknologi - Train On-the-fly)"
             ]
         )
@@ -644,7 +627,7 @@ def show_prediction_config():
             file_options[label] = f
 
         selected_file_label = st.selectbox(
-            "📂 Pilih File Dataset",
+            "📂 Pilih File Himpunan Data",
             options=list(file_options.keys())
         )
 
@@ -661,7 +644,7 @@ def show_prediction_config():
 
     st.success(f"✅ Berhasil memuat file: `{selected_file['original_filename']}` ({df_raw.shape[0]} baris × {df_raw.shape[1]} kolom)")
 
-    if mode == "Eksperimen (UCI Dataset - Pre-trained Model)":
+    if mode == "Eksperimen (UCI Himpunan Data - Pre-trained Model)":
         _config_experiment_mode(df_raw, selected_file)
     else:
         _config_primary_mode(df_raw, selected_file)
@@ -796,7 +779,7 @@ def show_prediction_results():
     st.title("📈 Hasil Analisis Prediksi")
     
     if st.button("⬅️ Kembali ke Dashboard"):
-        st.session_state.current_page = 'Dashboard Riwayat'
+        st.session_state.current_page = 'Dasbor Riwayat'
         st.rerun()
         
     if 'run_config' not in st.session_state:
@@ -825,7 +808,7 @@ def _show_intro_screen(features_uci):
     col_desc1, col_desc2 = st.columns(2)
 
     with col_desc1:
-        st.subheader("📊 Mode Eksperimen (UCI Dataset)")
+        st.subheader("📊 Mode Eksperimen (UCI Himpunan Data)")
         st.write("""
         Mode ini menggunakan model pohon keputusan C4.5 yang **sudah dilatih** sebelumnya pada dataset sekunder UCI (*Predict Students' Dropout and Academic Success*).
         
@@ -1010,11 +993,12 @@ def _run_experiment_mode(df_raw, model_uci, scaler_uci, features_uci):
                         if len(np.unique(y_true)) > 1:
                             pass
 
-                if len(np.unique(y_true)) == 2:
+                if len(np.unique(y_true)) >= 2:
+                    avg_method = 'binary' if len(np.unique(y_true)) == 2 else 'weighted'
                     acc = accuracy_score(y_true, y_pred)
-                    prec = precision_score(y_true, y_pred, zero_division=0)
-                    rec = recall_score(y_true, y_pred, zero_division=0)
-                    f1 = f1_score(y_true, y_pred, zero_division=0)
+                    prec = precision_score(y_true, y_pred, zero_division=0, average=avg_method)
+                    rec = recall_score(y_true, y_pred, zero_division=0, average=avg_method)
+                    f1 = f1_score(y_true, y_pred, zero_division=0, average=avg_method)
 
                     met1, met2, met3, met4 = st.columns(4)
                     with met1:
@@ -1022,7 +1006,7 @@ def _run_experiment_mode(df_raw, model_uci, scaler_uci, features_uci):
                     with met2:
                         st.metric("Presisi", f"{prec*100:.2f}%")
                     with met3:
-                        st.metric("Recall (Sensitivitas)", f"{rec*100:.2f}%")
+                        st.metric("Daya Ingat (Sensitivitas)", f"{rec*100:.2f}%")
                     with met4:
                         st.metric("F1-Score", f"{f1*100:.2f}%")
 
@@ -1108,8 +1092,16 @@ def _run_primary_mode(config, is_new_run=False):
                 else:
                     df_model[col].fillna(df_model[col].mode()[0], inplace=True)
 
-        # Target Binarization
-        y_raw = df_model[target_col]
+        # Target Encoding — mendukung berbagai format target
+        y_raw = df_model[target_col].copy()
+
+        # Hapus baris dengan target NaN
+        nan_mask = y_raw.isna()
+        if nan_mask.sum() > 0:
+            st.warning(f"⚠️ Ditemukan {nan_mask.sum()} baris dengan target kosong (NaN). Baris-baris tersebut akan dihapus.")
+            df_model = df_model[~nan_mask].reset_index(drop=True)
+            y_raw = df_model[target_col].copy()
+
         unique_targets = y_raw.unique()
 
         dropout_val = None
@@ -1121,14 +1113,20 @@ def _run_primary_mode(config, is_new_run=False):
         if dropout_val is not None:
             y = y_raw.apply(lambda x: 1 if x == dropout_val else 0).values
             class_names = ['Non-Dropout', 'Dropout']
+        elif set(str(v) for v in unique_targets) <= {'0', '1', '0.0', '1.0'}:
+            y = y_raw.apply(lambda x: int(float(x))).values
+            class_names = ['Non-Dropout', 'Dropout']
         else:
-            if 1 in unique_targets or '1' in unique_targets:
-                y = y_raw.apply(lambda x: 1 if str(x) in ['1', '1.0'] else 0).values
-                class_names = ['Non-Dropout', 'Dropout']
-            else:
-                sorted_unique = sorted(list(unique_targets))
-                y = y_raw.map({sorted_unique[0]: 0, sorted_unique[1]: 1}).values
-                class_names = [str(sorted_unique[0]), str(sorted_unique[1])]
+            # Encode semua nilai unik secara otomatis (mendukung 2+ kelas)
+            sorted_unique = sorted([str(v) for v in unique_targets])
+            label_map = {val: idx for idx, val in enumerate(sorted_unique)}
+            y = y_raw.astype(str).map(label_map).values
+            class_names = sorted_unique
+
+            # Validasi: pastikan tidak ada NaN setelah mapping
+            if pd.isna(y).any():
+                st.error("❌ Gagal mengkodekan kolom target. Pastikan kolom target tidak memiliki nilai yang tidak terduga.")
+                return
 
         X_all = df_model[selected_train_features]
 
@@ -1200,13 +1198,19 @@ def _run_primary_mode(config, is_new_run=False):
         model_c45.fit(X_train_scaled, y_train)
 
         y_pred = model_c45.predict(X_test_scaled)
-        y_pred_proba = model_c45.predict_proba(X_test_scaled)[:, 1]
+        is_binary = len(class_names) == 2
+        avg_method = 'binary' if is_binary else 'weighted'
+
+        if is_binary:
+            y_pred_proba = model_c45.predict_proba(X_test_scaled)[:, 1]
+        else:
+            y_pred_proba = model_c45.predict_proba(X_test_scaled)
 
         # --- EVALUATION METRICS ---
         acc = accuracy_score(y_test, y_pred)
-        prec = precision_score(y_test, y_pred, zero_division=0)
-        rec = recall_score(y_test, y_pred, zero_division=0)
-        f1 = f1_score(y_test, y_pred, zero_division=0)
+        prec = precision_score(y_test, y_pred, zero_division=0, average=avg_method)
+        rec = recall_score(y_test, y_pred, zero_division=0, average=avg_method)
+        f1 = f1_score(y_test, y_pred, zero_division=0, average=avg_method)
 
         # ══════════════════════════════════════════════════════════════
         # BAGIAN 1: EVALUASI MODEL
@@ -1221,7 +1225,7 @@ def _run_primary_mode(config, is_new_run=False):
         with m2:
             st.metric("Presisi", f"{prec*100:.2f}%")
         with m3:
-            st.metric("Recall", f"{rec*100:.2f}%")
+            st.metric("Daya Ingat", f"{rec*100:.2f}%")
         with m4:
             st.metric("F1-Score", f"{f1*100:.2f}%")
 
@@ -1245,7 +1249,7 @@ def _run_primary_mode(config, is_new_run=False):
 
         with eval_col2:
             st.markdown("##### 📌 Ringkasan Metrik Evaluasi")
-            metric_names = ['Akurasi', 'Presisi', 'Recall', 'F1-Score']
+            metric_names = ['Akurasi', 'Presisi', 'Daya Ingat', 'Skor-F1']
             metric_values = [acc*100, prec*100, rec*100, f1*100]
             metric_colors = ['#3498DB', '#2ECC71', '#E67E22', '#E74C3C']
 
@@ -1271,11 +1275,20 @@ def _run_primary_mode(config, is_new_run=False):
         # ROC Curve
         st.markdown("##### 📌 ROC Curve")
         fig_roc, ax_roc = plt.subplots(figsize=(8, 5))
-        fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
-        roc_auc = auc(fpr, tpr)
-        ax_roc.plot(fpr, tpr, color='#E24B4A', linewidth=2, label=f'ROC Curve (AUC = {roc_auc:.4f})')
+        if is_binary:
+            fpr, tpr, _ = roc_curve(y_test, y_pred_proba)
+            roc_auc = auc(fpr, tpr)
+            ax_roc.plot(fpr, tpr, color='#E24B4A', linewidth=2, label=f'ROC Curve (AUC = {roc_auc:.4f})')
+            ax_roc.fill_between(fpr, tpr, alpha=0.15, color='#E24B4A')
+        else:
+            from sklearn.preprocessing import label_binarize
+            y_test_bin = label_binarize(y_test, classes=list(range(len(class_names))))
+            colors_roc = ['#E24B4A', '#3498DB', '#2ECC71', '#F39C12'][:len(class_names)]
+            for i, (cls_name, color) in enumerate(zip(class_names, colors_roc)):
+                fpr_i, tpr_i, _ = roc_curve(y_test_bin[:, i], y_pred_proba[:, i])
+                roc_auc_i = auc(fpr_i, tpr_i)
+                ax_roc.plot(fpr_i, tpr_i, color=color, linewidth=2, label=f'{cls_name} (AUC = {roc_auc_i:.4f})')
         ax_roc.plot([0, 1], [0, 1], color='gray', linestyle='--')
-        ax_roc.fill_between(fpr, tpr, alpha=0.15, color='#E24B4A')
         ax_roc.set_xlabel('False Positive Rate')
         ax_roc.set_ylabel('True Positive Rate')
         ax_roc.set_title('ROC Curve', fontsize=12, fontweight='bold')
@@ -1336,16 +1349,22 @@ def _run_primary_mode(config, is_new_run=False):
         X_all_scaled_cv = scaler.fit_transform(X_numeric)
 
         cv_accuracy = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='accuracy')
-        cv_precision = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='precision')
-        cv_recall = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='recall')
-        cv_f1 = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='f1')
+        if is_binary:
+            cv_precision = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='precision')
+            cv_recall = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='recall')
+            cv_f1 = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring='f1')
+        else:
+            from sklearn.metrics import make_scorer
+            cv_precision = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring=make_scorer(precision_score, average='weighted', zero_division=0))
+            cv_recall = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring=make_scorer(recall_score, average='weighted', zero_division=0))
+            cv_f1 = cross_val_score(cv_model, X_all_scaled_cv, y, cv=10, scoring=make_scorer(f1_score, average='weighted', zero_division=0))
 
         # Tabel hasil per fold
         cv_table = pd.DataFrame({
             'Fold': [f'Fold {i+1}' for i in range(10)],
             'Akurasi (%)': [f'{v*100:.2f}' for v in cv_accuracy],
             'Presisi (%)': [f'{v*100:.2f}' for v in cv_precision],
-            'Recall (%)': [f'{v*100:.2f}' for v in cv_recall],
+            'Daya Ingat (%)': [f'{v*100:.2f}' for v in cv_recall],
             'F1-Score (%)': [f'{v*100:.2f}' for v in cv_f1],
         })
         # Tambah baris rata-rata
@@ -1353,7 +1372,7 @@ def _run_primary_mode(config, is_new_run=False):
             'Fold': ['**Rata-rata**'],
             'Akurasi (%)': [f'{cv_accuracy.mean()*100:.2f}'],
             'Presisi (%)': [f'{cv_precision.mean()*100:.2f}'],
-            'Recall (%)': [f'{cv_recall.mean()*100:.2f}'],
+            'Daya Ingat (%)': [f'{cv_recall.mean()*100:.2f}'],
             'F1-Score (%)': [f'{cv_f1.mean()*100:.2f}'],
         })
         cv_table = pd.concat([cv_table, avg_row], ignore_index=True)
@@ -1366,8 +1385,8 @@ def _run_primary_mode(config, is_new_run=False):
             folds = range(1, 11)
             ax_cv.plot(folds, cv_accuracy*100, 'o-', color='#3498DB', label='Akurasi', linewidth=2, markersize=6)
             ax_cv.plot(folds, cv_precision*100, 's-', color='#2ECC71', label='Presisi', linewidth=2, markersize=6)
-            ax_cv.plot(folds, cv_recall*100, '^-', color='#E67E22', label='Recall', linewidth=2, markersize=6)
-            ax_cv.plot(folds, cv_f1*100, 'D-', color='#E74C3C', label='F1-Score', linewidth=2, markersize=6)
+            ax_cv.plot(folds, cv_recall*100, '^-', color='#E67E22', label='Daya Ingat', linewidth=2, markersize=6)
+            ax_cv.plot(folds, cv_f1*100, 'D-', color='#E74C3C', label='Skor-F1', linewidth=2, markersize=6)
             ax_cv.axhline(y=80, color='gray', linestyle='--', alpha=0.5, label='Target (80%)')
             ax_cv.set_xlabel('Fold', fontsize=11)
             ax_cv.set_ylabel('Nilai (%)', fontsize=11)
@@ -1465,14 +1484,18 @@ def _run_primary_mode(config, is_new_run=False):
 
         X_all_scaled = scaler.transform(X_numeric)
         all_preds = model_c45.predict(X_all_scaled)
-        all_probs = model_c45.predict_proba(X_all_scaled)[:, 1]
+        all_probs_full = model_c45.predict_proba(X_all_scaled)
 
         df_result = df_raw.copy()
         df_result['Hasil_Prediksi_Numerik'] = all_preds
         df_result['Hasil_Prediksi'] = df_result['Hasil_Prediksi_Numerik'].map(
             {i: name for i, name in enumerate(class_names)}
         )
-        df_result['Probabilitas_Dropout'] = all_probs
+        if is_binary:
+            df_result['Probabilitas_Dropout'] = all_probs_full[:, 1]
+        else:
+            # Untuk multi-kelas, ambil probabilitas tertinggi
+            df_result['Probabilitas_Prediksi'] = all_probs_full.max(axis=1)
 
         # KPI ringkasan prediksi batch
         batch_total = len(df_result)
@@ -1572,29 +1595,35 @@ else:
     page = st.session_state.current_page
     role = st.session_state.role
 
-    if page == 'Dashboard Riwayat':
-        show_dashboard_riwayat()
+    if page == 'Dasbor Riwayat':
+        if role == 'BK':
+            show_dashboard_riwayat()
+        else:
+            st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
     elif page == 'Konfigurasi Prediksi':
-        if role in ['Admin', 'BK']:
+        if role == 'BK':
             show_prediction_config()
         else:
             st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
     elif page == 'Hasil Prediksi':
         show_prediction_results()
-    elif page == 'Upload File':
-        if role in ['Admin', 'Wali Kelas', 'BK']:
+    elif page == 'Unggah Berkas':
+        if role == 'Guru':
             show_upload_page()
         else:
             st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
-    elif page == 'Manajemen File':
-        if role in ['Admin', 'Wali Kelas', 'BK']:
+    elif page == 'Manajemen Berkas':
+        if role == 'Guru':
             show_file_management_page()
         else:
             st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
-    elif page == 'Manajemen User':
-        if role == 'Admin':
+    elif page == 'Manajemen Pengguna':
+        if role == 'BK':
             show_user_management_page()
         else:
             st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
     else:
-        show_dashboard_riwayat()
+        if role == 'BK':
+            show_dashboard_riwayat()
+        elif role == 'Guru':
+            show_upload_page()
