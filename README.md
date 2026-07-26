@@ -8,27 +8,28 @@ Aplikasi web berbasis **Streamlit** untuk memprediksi risiko siswa putus sekolah
 
 1. [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
 2. [Struktur Proyek](#-struktur-proyek)
-3. [Arsitektur Sistem & Peran](#-arsitektur-sistem--peran)
-4. [Himpunan Data & Fitur](#-himpunan-data--fitur)
-5. [Implementasi Pra-pemrosesan Data](#-implementasi-pra-pemrosesan-data)
-6. [Implementasi Algoritma C4.5](#-implementasi-algoritma-c45)
-7. [Evaluasi Model](#-evaluasi-model)
-8. [Cara Menjalankan](#-cara-menjalankan)
+3. [Arsitektur MVC](#-arsitektur-mvc)
+4. [Arsitektur Sistem & Peran](#-arsitektur-sistem--peran)
+5. [Himpunan Data & Fitur](#-himpunan-data--fitur)
+6. [Implementasi Pra-pemrosesan Data](#-implementasi-pra-pemrosesan-data)
+7. [Implementasi Algoritma C4.5](#-implementasi-algoritma-c45)
+8. [Evaluasi Model](#-evaluasi-model)
+9. [Cara Menjalankan](#-cara-menjalankan)
 
 ---
 
 ## 🛠 Teknologi yang Digunakan
 
-| Komponen | Teknologi | Versi / Keterangan |
-|----------|-----------|---------------------|
-| Bahasa Pemrograman | Python | 3.x |
-| Kerangka Kerja Web | Streamlit | Dasbor interaktif |
-| Basis Data | SQLite3 | Bawaan Python, berkas `early_warning.db` |
-| Pembelajaran Mesin | Scikit-learn | `DecisionTreeClassifier` (C4.5) |
-| Pemrosesan Data | Pandas, NumPy | Manipulasi kerangka data & komputasi numerik |
-| Visualisasi | Matplotlib, Seaborn | Grafik, peta panas, pohon keputusan |
-| Enkripsi Kata Sandi | hashlib (SHA-256) | Bawaan Python |
-| Penanganan Berkas | uuid, os, io | Bawaan Python |
+| Komponen            | Teknologi           | Versi / Keterangan                           |
+| ------------------- | ------------------- | -------------------------------------------- |
+| Bahasa Pemrograman  | Python              | 3.x                                          |
+| Kerangka Kerja Web  | Streamlit           | Dasbor interaktif                            |
+| Basis Data          | SQLite3             | Bawaan Python, berkas `early_warning.db`     |
+| Pembelajaran Mesin  | Scikit-learn        | `DecisionTreeClassifier` (C4.5)              |
+| Pemrosesan Data     | Pandas, NumPy       | Manipulasi kerangka data & komputasi numerik |
+| Visualisasi         | Matplotlib, Seaborn | Grafik, peta panas, pohon keputusan          |
+| Enkripsi Kata Sandi | hashlib (SHA-256)   | Bawaan Python                                |
+| Penanganan Berkas   | uuid, os, io        | Bawaan Python                                |
 
 ### Pustaka Python (`requirements.txt`)
 
@@ -48,26 +49,121 @@ openpyxl
 
 ## 📁 Struktur Proyek
 
+Proyek menggunakan pola **MVC (Model-View-Controller)** untuk memisahkan tanggung jawab setiap lapisan kode.
+
 ```
 early_warning_system/
-├── app.py                      # Aplikasi utama Streamlit
-├── db.py                       # Modul basis data SQLite (koneksi, operasi, data awal)
-├── requirements.txt            # Daftar dependensi Python
-├── penjabaran_fitur_dataset.md # Dokumentasi lengkap 14 fitur himpunan data
+├── app.py                          # Entry point (router utama, ~60 baris)
+├── db.py                           # Modul basis data SQLite (koneksi, CRUD, data awal)
+├── requirements.txt                # Daftar dependensi Python
+├── penjabaran_fitur_dataset.md     # Dokumentasi lengkap 14 fitur himpunan data
 │
-├── model_c45_dropout.pkl       # Model C4.5 pra-latih (Himpunan Data UCI)
-├── scaler_dropout.pkl          # Pembuat Skala Standar pra-latih (Himpunan Data UCI)
-├── selected_features.pkl       # Daftar 8 fitur terpilih (Himpunan Data UCI)
+├── model_c45_dropout.pkl           # Model C4.5 pra-latih (Himpunan Data UCI)
+├── scaler_dropout.pkl              # Pembuat Skala Standar pra-latih (UCI)
+├── selected_features.pkl           # Daftar 8 fitur terpilih (UCI)
+│
+├── models/                         # ── LAYER MODEL ──
+│   ├── __init__.py
+│   ├── file_utils.py               # Utilitas file: baca CSV/Excel, format ukuran & waktu
+│   └── ml_model.py                 # Logika ML: load artifacts, preprocessing, C4.5, evaluasi
+│
+├── controllers/                    # ── LAYER CONTROLLER ──
+│   ├── __init__.py
+│   ├── auth_controller.py          # Login, logout, init session state
+│   ├── file_controller.py          # Upload, ambil daftar, hapus file
+│   ├── prediction_controller.py    # Siapkan konfigurasi prediksi, simpan riwayat
+│   └── user_controller.py          # CRUD pengguna (wrapper db.py)
+│
+├── views/                          # ── LAYER VIEW ──
+│   ├── __init__.py
+│   ├── login_view.py               # Halaman login
+│   ├── sidebar_view.py             # Sidebar navigasi berdasarkan peran
+│   ├── dashboard_view.py           # Dasbor riwayat prediksi
+│   ├── upload_view.py              # Halaman unggah berkas
+│   ├── file_management_view.py     # Halaman manajemen berkas
+│   ├── user_management_view.py     # Halaman manajemen pengguna (BK only)
+│   ├── prediction_config_view.py   # Konfigurasi mode & parameter prediksi
+│   └── prediction_result_view.py   # Hasil & visualisasi prediksi lengkap
 │
 ├── dataset/
-│   └── data_dummy_siswa.csv    # Data tiruan 501 baris, 14 fitur + 1 target
+│   └── data_dummy_siswa.csv        # Data tiruan 501 baris, 14 fitur + 1 target
 │
-├── uploads/                    # Direktori penyimpanan berkas yang diunggah pengguna
+├── uploads/                        # Direktori penyimpanan berkas yang diunggah pengguna
 │   └── .gitkeep
 │
-├── early_warning.db            # Basis data SQLite (otomatis dibuat saat dijalankan)
-└── inspect_nb.py               # Skrip utilitas untuk inspeksi catatan
+└── early_warning.db                # Basis data SQLite (otomatis dibuat saat dijalankan)
 ```
+
+---
+
+## 🏗️ Arsitektur MVC
+
+Aplikasi dibangun menggunakan pola **Model-View-Controller (MVC)** untuk memisahkan tanggung jawab kode agar mudah dikembangkan dan dipelihara.
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         app.py (Entry Point)                         │
+│              Routing halaman berdasarkan session_state               │
+└────────────┬─────────────────┬────────────────────────┬─────────────┘
+             │                 │                        │
+      ┌──────▼──────┐  ┌───────▼───────┐      ┌────────▼────────┐
+      │  CONTROLLER │  │     VIEW      │      │      MODEL      │
+      │ controllers/│  │    views/     │      │    models/      │
+      │             │  │               │      │                 │
+      │ auth_       │  │ login_view    │      │ file_utils.py   │
+      │ controller  │  │ sidebar_view  │      │ (baca file,     │
+      │             │  │ dashboard_    │      │  format data)   │
+      │ file_       │  │ view          │      │                 │
+      │ controller  │  │ upload_view   │      │ ml_model.py     │
+      │             │  │ file_mgmt_    │      │ (preprocessing, │
+      │ prediction_ │  │ view          │      │  C4.5 training, │
+      │ controller  │  │ user_mgmt_    │      │  evaluasi,      │
+      │             │  │ view          │      │  cross-val)     │
+      │ user_       │  │ prediction_   │      │                 │
+      │ controller  │  │ config_view   │      └────────┬────────┘
+      └──────┬──────┘  │ prediction_   │               │
+             │          │ result_view   │               │
+             │          └───────────────┘               │
+             │                                          │
+      ┌──────▼──────────────────────────────────────────▼──┐
+      │                      db.py                          │
+      │         SQLite: users, uploaded_files,              │
+      │                 prediction_history                  │
+      └─────────────────────────────────────────────────────┘
+```
+
+### Tanggung Jawab Setiap Layer
+
+| Layer           | Folder         | Tanggung Jawab                                                       |
+| --------------- | -------------- | -------------------------------------------------------------------- |
+| **Entry Point** | `app.py`       | Inisialisasi, konfigurasi Streamlit, routing halaman                 |
+| **Model**       | `models/`      | Logika ML (preprocessing, training, evaluasi) dan utilitas file      |
+| **Controller**  | `controllers/` | Logika bisnis: auth, manajemen file, konfigurasi prediksi, CRUD user |
+| **View**        | `views/`       | Semua tampilan Streamlit (`st.*`), tidak mengandung logika bisnis    |
+| **Data Layer**  | `db.py`        | Koneksi SQLite, CRUD tabel, inisialisasi & seed data awal            |
+
+### Alur Data Antar Layer
+
+```
+Pengguna → View → Controller → Model / db.py → Controller → View → Pengguna
+```
+
+**Contoh alur Login:**
+
+1. `views/login_view.py` — menampilkan form dan menerima input username/password
+2. `controllers/auth_controller.py` — memanggil `db.authenticate_user()`
+3. `db.py` — query SQLite, return dict user
+4. `auth_controller.py` — set `session_state` jika berhasil
+5. `login_view.py` — memanggil `st.rerun()` untuk redirect
+
+**Contoh alur Prediksi Data Primer:**
+
+1. `views/prediction_config_view.py` — tampilkan UI konfigurasi
+2. `controllers/prediction_controller.py` — simpan konfigurasi ke `session_state`, redirect
+3. `views/prediction_result_view.py` — baca konfigurasi, panggil model
+4. `models/ml_model.py` — preprocessing → training C4.5 → evaluasi → return hasil
+5. `prediction_result_view.py` — tampilkan semua visualisasi
+6. `db.py` — simpan riwayat prediksi ke database
 
 ---
 
@@ -75,84 +171,99 @@ early_warning_system/
 
 Sistem menggunakan **autentikasi berbasis sesi** dengan 2 peran pengguna:
 
-| Peran | Hak Akses |
-|------|-----------|
-| **BK** | Akses penuh: unggah berkas, hapus semua berkas, manajemen pengguna, lihat semua hasil prediksi, dan jalankan konfigurasi |
-| **Guru** | Unggah berkas, hapus berkas **miliknya sendiri**, dan melihat riwayat prediksi di dasbor |
+| Peran    | Hak Akses                                                                                |
+| -------- | ---------------------------------------------------------------------------------------- |
+| **BK**   | Akses penuh: Konfigurasi Prediksi, Dasbor Riwayat Hasil Prediksi, dan Manajemen Pengguna |
+| **Guru** | Unggah Berkas dan Manajemen Berkas (hanya berkas miliknya sendiri)                       |
 
 ### Skema Basis Data SQLite
 
 #### Tabel `users` (Pengguna)
 
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `id` | INTEGER (PK, AI) | ID unik pengguna |
-| `username` | TEXT (UNIQUE) | Nama pengguna untuk masuk |
-| `password` | TEXT | Kata sandi yang dienkripsi SHA-256 |
-| `nama_lengkap` | TEXT | Nama lengkap pengguna |
-| `role` | TEXT | `BK` / `Guru` |
-| `created_at` | TIMESTAMP | Waktu pembuatan akun |
+| Kolom          | Tipe             | Keterangan                         |
+| -------------- | ---------------- | ---------------------------------- |
+| `id`           | INTEGER (PK, AI) | ID unik pengguna                   |
+| `username`     | TEXT (UNIQUE)    | Nama pengguna untuk masuk          |
+| `password`     | TEXT             | Kata sandi yang dienkripsi SHA-256 |
+| `nama_lengkap` | TEXT             | Nama lengkap pengguna              |
+| `role`         | TEXT             | `BK` / `Guru`                      |
+| `created_at`   | TIMESTAMP        | Waktu pembuatan akun               |
 
 #### Tabel `uploaded_files` (Berkas Unggahan)
 
-| Kolom | Tipe | Keterangan |
-|-------|------|------------|
-| `id` | INTEGER (PK, AI) | ID unik berkas |
-| `filename` | TEXT | Nama berkas unik di peladen (Awalan UUID) |
-| `original_filename` | TEXT | Nama berkas asli yang diunggah |
-| `file_path` | TEXT | Jalur absolut berkas di penyimpanan |
-| `uploaded_by` | INTEGER (FK) | ID pengguna yang mengunggah |
-| `uploaded_at` | TIMESTAMP | Waktu unggah |
-| `file_size` | INTEGER | Ukuran berkas dalam bita |
-| `description` | TEXT | Deskripsi opsional |
+| Kolom               | Tipe             | Keterangan                                |
+| ------------------- | ---------------- | ----------------------------------------- |
+| `id`                | INTEGER (PK, AI) | ID unik berkas                            |
+| `filename`          | TEXT             | Nama berkas unik di peladen (Awalan UUID) |
+| `original_filename` | TEXT             | Nama berkas asli yang diunggah            |
+| `file_path`         | TEXT             | Jalur absolut berkas di penyimpanan       |
+| `uploaded_by`       | INTEGER (FK)     | ID pengguna yang mengunggah               |
+| `uploaded_at`       | TIMESTAMP        | Waktu unggah                              |
+| `file_size`         | INTEGER          | Ukuran berkas dalam bita                  |
+| `description`       | TEXT             | Deskripsi opsional                        |
 
 ### Akun Bawaan (Data Awal)
 
-| Nama Pengguna | Kata Sandi | Peran | Nama Lengkap |
-|----------|----------|------|--------------|
-| `bk` | `admin123` | BK | Guru BK |
-| `guru` | `admin123` | Guru | Guru Mata Pelajaran |
+| Nama Pengguna | Kata Sandi | Peran | Nama Lengkap        |
+| ------------- | ---------- | ----- | ------------------- |
+| `bk`          | `admin123` | BK    | Guru BK             |
+| `guru`        | `admin123` | Guru  | Guru Mata Pelajaran |
 
 ---
 
 ## 📊 Himpunan Data & Fitur
 
-### Deskripsi Himpunan Data
+### Deskripsi Himpunan Data (`data_siswa_final.csv`)
 
-Himpunan data terdiri dari **14 fitur** yang dibagi ke dalam 3 kategori utama, ditambah 1 kolom target:
+Himpunan data utama yang digunakan terdiri dari **5 fitur utama** (akademik, kehadiran, kedisiplinan, dan sosial ekonomi) serta **1 kolom target**:
 
-| No | Nama Fitur | Kategori | Tipe Data | Rentang/Nilai |
-|----|------------|----------|-----------|-------------|
-| 1 | `Kehadiran_Semester_1` | Kehadiran | Numerik (int) | 50 – 100 (%) |
-| 2 | `Kehadiran_Semester_2` | Kehadiran | Numerik (int) | 50 – 100 (%) |
-| 3 | `Nilai_Rata_Semester_1` | Kehadiran | Numerik (float) | 40.0 – 95.0 |
-| 4 | `Nilai_Rata_Semester_2` | Kehadiran | Numerik (float) | 40.0 – 95.0 |
-| 5 | `Jumlah_Pelanggaran` | Kehadiran | Numerik (int) | 0 – 20 |
-| 6 | `Pendidikan_Ayah` | Sosial | Kategorik ordinal (int) | 1–5 (SD s.d. S1+) |
-| 7 | `Pendidikan_Ibu` | Sosial | Kategorik ordinal (int) | 1–5 (SD s.d. S1+) |
-| 8 | `Status_Keluarga` | Sosial | Kategorik nominal (int) | 1–3 (Lengkap/Orang tua tunggal/Wali) |
-| 9 | `Jumlah_Saudara` | Sosial | Numerik (int) | 0 – 5 |
-| 10 | `Jarak_Rumah_km` | Sosial | Numerik (float) | 0.5 – 30.0 km |
-| 11 | `Status_SPP` | Ekonomi | Biner (int) | 0 = Menunggak, 1 = Lunas |
-| 12 | `Penerima_Beasiswa` | Ekonomi | Biner (int) | 0 = Tidak, 1 = Ya |
-| 13 | `Penghasilan_Ortu` | Ekonomi | Kategorik ordinal (int) | 1–4 (<1jt s.d. >5jt) |
-| 14 | `Tanggungan_Keluarga` | Ekonomi | Numerik (int) | 1 – 7 |
-| — | `Status` | **Target** | Kategorik | `Dropout` / `Non-Dropout` |
+| No  | Nama Fitur           | Kategori     | Tipe Data               | Deskripsi / Rentang Nilai                              |
+| --- | -------------------- | ------------ | ----------------------- | ------------------------------------------------------ |
+| 1   | `NISN`               | Identitas    | Numerik (int)           | Nomor Induk Siswa Nasional (Pengenal unik)             |
+| 2   | `Kehadiran`          | Kehadiran    | Numerik (float)         | Persentase Kehadiran Siswa (48.0% – 100.0%)            |
+| 3   | `Nilai_Rata`         | Akademik     | Numerik (float)         | Nilai Rata-rata Kumulatif Siswa (38.0 – 95.0)          |
+| 4   | `Jumlah_Pelanggaran` | Kedisiplinan | Numerik (int)           | Frekuensi / Poin Pelanggaran Tata Tertib (0 – 19)      |
+| 5   | `Penghasilan_Ortu`   | Ekonomi      | Kategorik Ordinal (int) | Kategori Penghasilan Orang Tua (1 = Low s.d. 4 = High) |
+| —   | `Status`             | **Target**   | Kategorik Multi-Kelas   | Status Siswa (`Non-Dropout`, `DO-Nilai`, `DO-Masalah`) |
 
 ### Dua Mode Analisis
 
-| Mode | Sumber Data | Proses |
-|------|-------------|--------|
-| **Eksperimen (Himpunan Data UCI)** | Himpunan data sekunder UCI (*Prediksi Siswa Putus Sekolah dan Kesuksesan Akademik*) | Menggunakan model **pra-latih** (`model_c45_dropout.pkl`) dengan 8 fitur terpilih |
-| **Data Primer (SMK Tunas Teknologi)** | Data lokal 14 fitur konteks SMA/SMK Indonesia | Model dilatih **secara langsung** dari data yang diunggah |
+| Mode                                  | Sumber Data                                                                         | Proses                                                                            |
+| ------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Eksperimen (Himpunan Data UCI)**    | Himpunan data sekunder UCI (_Prediksi Siswa Putus Sekolah dan Kesuksesan Akademik_) | Menggunakan model **pra-latih** (`model_c45_dropout.pkl`) dengan 8 fitur terpilih |
+| **Data Primer (SMK Tunas Teknologi)** | Data lokal 14 fitur konteks SMA/SMK Indonesia                                       | Model dilatih **secara langsung** dari data yang diunggah                         |
 
 ---
 
 ## 🔧 Implementasi Pra-pemrosesan Data
 
+### Alur Aktivitas Pra-pemrosesan (Activity Diagram Flow)
+
+Untuk keperluan pembuatan _Activity Diagram_, berikut adalah alur sekuensial (berurutan) yang persis terjadi di dalam sistem (`app.py` & `preprocessing_dataset.py`):
+
+1. **Menerima Dataset (Input Data)**: Sistem menerima dataset mentah dari unggahan pengguna (berformat CSV/Excel).
+2. **Pembersihan Missing Value**:
+   - Sistem memisahkan pengecekan per kolom.
+   - Jika kolom numerik memiliki data kosong, diisi dengan **Median**.
+   - Jika kolom kategorikal memiliki data kosong, diisi dengan **Modus**.
+3. **Pembersihan Target NaN**: Sistem mendeteksi kolom target (Status). Jika ada baris dengan target yang kosong (NaN), baris tersebut akan dihapus secara keseluruhan (drop).
+4. **Target Encoding (Binarisasi/Multiklasifikasi)**: Sistem memetakan nilai teks pada kolom target menjadi numerik murni secara otomatis (misal: `DO-Masalah` menjadi `0`, `DO-Nilai` menjadi `1`).
+5. **Label Encoding (Fitur)**: Sistem memindai semua kolom fitur. Kolom bertipe teks/kategorikal diubah menjadi angka menggunakan fungsi `factorize` (misal: "Laki-laki" -> 0, "Perempuan" -> 1).
+6. **Feature Selection (Information Gain)** (Opsional jika diaktifkan):
+   - Sistem menghitung nilai _Entropy_ dan _Information Gain_ dari setiap fitur.
+   - Fitur dengan skor di bawah ambang batas (threshold) dibuang, menyisakan fitur-fitur yang paling relevan.
+7. **Train-Test Split**: Sistem memecah himpunan data menjadi **Data Latih (80%)** dan **Data Uji (20%)** menggunakan proporsi terstruktur (_stratified_).
+8. **Normalisasi Data (Z-Score)**:
+   - Sistem melakukan _scaling_ menggunakan _Standard Scaler_ agar rentang data seimbang (Mean=0, Std=1).
+   - Skala dihitung (fit) hanya pada Data Latih, lalu diterapkan (transform) pada Data Latih dan Data Uji.
+9. **Data Siap (Output Data)**: Himpunan data selesai diproses dan siap dimasukkan ke dalam model C4.5.
+
+---
+
 ### 1. Pemasukan Data
 
 Berkas himpunan data didukung dalam 2 format:
+
 - **CSV** — dengan deteksi pemisah otomatis (`,` atau `;`)
 - **Excel (.xlsx)** — menggunakan pustaka `openpyxl`
 
@@ -168,10 +279,10 @@ df = pd.read_csv(file_path, sep=sep)
 
 Sistem menggunakan **strategi pengisian berdasarkan tipe data**:
 
-| Tipe Data | Teknik Pengisian | Justifikasi |
-|-----------|----------------|-------------|
-| **Numerik** (`int64`, `float64`) | **Nilai Tengah (Median)** | Nilai tengah lebih kebal terhadap pencilan dibanding rata-rata. Tidak terpengaruh oleh nilai ekstrem. |
-| **Kategorikal** (`object`, `category`) | **Modus** (nilai paling sering) | Modus mempertahankan distribusi kategori yang dominan tanpa memperkenalkan nilai baru. |
+| Tipe Data                              | Teknik Pengisian                | Justifikasi                                                                                           |
+| -------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Numerik** (`int64`, `float64`)       | **Nilai Tengah (Median)**       | Nilai tengah lebih kebal terhadap pencilan dibanding rata-rata. Tidak terpengaruh oleh nilai ekstrem. |
+| **Kategorikal** (`object`, `category`) | **Modus** (nilai paling sering) | Modus mempertahankan distribusi kategori yang dominan tanpa memperkenalkan nilai baru.                |
 
 ```python
 # Implementasi dalam kode (app.py, baris 874-880)
@@ -189,8 +300,8 @@ for col in selected_train_features:
 
 Fitur bertipe kategorikal (untaian/objek) dikonversi ke **kode numerik** menggunakan **Pengkodean Label** (`pd.factorize`):
 
-| Teknik | Implementasi | Justifikasi |
-|--------|-------------|-------------|
+| Teknik                                | Implementasi                                              | Justifikasi                                                                                                                                                                     |
+| ------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Pengkodean Label** (`pd.factorize`) | Setiap kategori unik diberi bilangan bulat (0, 1, 2, ...) | Pohon Keputusan tidak memerlukan Pengkodean Satu-Aktif (One-Hot) karena melakukan pemisahan berbasis ambang batas, bukan jarak. Pengkodean Label sudah cukup dan lebih efisien. |
 
 ```python
@@ -203,15 +314,15 @@ for col in X_numeric.columns:
         categorical_cols.append(col)
 ```
 
-### 4. Pengkodean Target 
+### 4. Pengkodean Target
 
-Kolom target dikonversi ke format **biner** (0/1) dengan logika banyak tingkat:
+Kolom target dikonversi ke format numerik murni dengan mendukung format **Biner** maupun **Multi-Kelas** (misal: `DO-Masalah`, `DO-Nilai`, `Non-Dropout`):
 
-| Prioritas | Kondisi | Pemetaan |
-|-----------|---------|---------|
-| 1 | Ditemukan nilai `"Dropout"` (tidak peka huruf kapital) | `Dropout` → 1, lainnya → 0 |
-| 2 | Ditemukan nilai numerik `1` | `1` → 1 (Dropout), `0` → 0 |
-| 3 | Cadangan | `pd.factorize` otomatis → kelas pertama = 0, kedua = 1 |
+| Prioritas | Kondisi Target                                     | Pemetaan                                          |
+| --------- | -------------------------------------------------- | ------------------------------------------------- |
+| 1         | Ditemukan label `"Dropout"`                        | `Dropout` → 1, Lainnya → 0 (Biner)                |
+| 2         | Target berupa biner `0` dan `1`                    | `1` → 1, `0` → 0                                  |
+| 3         | Target Multi-Kelas (`DO-Masalah`, `DO-Nilai`, dll) | Pemetaan urut otomatis (`label_map`) → 0, 1, 2... |
 
 ```python
 # Implementasi (app.py, baris 882-902)
@@ -228,8 +339,8 @@ if dropout_val is not None:
 
 ### 5. Normalisasi / Standarisasi Data (Penskalaan Fitur)
 
-| Teknik | Pustaka | Rumus | Justifikasi |
-|--------|---------|---------|-------------|
+| Teknik                                          | Pustaka                                | Rumus             | Justifikasi                                                                                                                                                                                                                   |
+| ----------------------------------------------- | -------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Pembuat Skala Standar** (Normalisasi Z-Score) | `sklearn.preprocessing.StandardScaler` | `z = (x - μ) / σ` | Mengubah distribusi fitur agar memiliki rata-rata = 0 dan simpangan baku = 1. Meskipun Pohon Keputusan secara teori tidak memerlukan penskalaan, standarisasi membantu konsistensi interpretasi dan perbandingan antar fitur. |
 
 ```python
@@ -243,11 +354,11 @@ X_test_scaled = scaler.transform(X_test)          # ubah saja pada data uji
 
 ### 6. Pembagian Data Latih dan Uji
 
-| Parameter | Nilai Bawaan | Konfigurasi |
-|-----------|--------------|-------------|
-| **Rasio Pengujian** | 20% | Dapat diatur pengguna melalui penggeser (10% – 50%) |
-| **Stratifikasi** | `stratify=y` | Mempertahankan proporsi kelas Dropout/Non-Dropout di kedua bagian |
-| **Kondisi Acak** | 42 | Menjamin reproduktibilitas hasil |
+| Parameter           | Nilai Bawaan | Konfigurasi                                                       |
+| ------------------- | ------------ | ----------------------------------------------------------------- |
+| **Rasio Pengujian** | 20%          | Dapat diatur pengguna melalui penggeser (10% – 50%)               |
+| **Stratifikasi**    | `stratify=y` | Mempertahankan proporsi kelas Dropout/Non-Dropout di kedua bagian |
+| **Kondisi Acak**    | 42           | Menjamin reproduktibilitas hasil                                  |
 
 ```python
 # Implementasi (app.py, baris 953-956)
@@ -258,11 +369,12 @@ X_train, X_test, y_train, y_test = train_test_split(
 
 ### 7. Seleksi Fitur — Perolehan Informasi (Information Gain)
 
-| Teknik | Pustaka | Aktivasi |
-|--------|---------|----------|
+| Teknik                                                       | Pustaka                                         | Aktivasi                               |
+| ------------------------------------------------------------ | ----------------------------------------------- | -------------------------------------- |
 | **Klasifikasi Informasi Timbal Balik** (Perolehan Informasi) | `sklearn.feature_selection.mutual_info_classif` | Opsional, diaktifkan via kotak centang |
 
 Proses seleksi fitur:
+
 1. Hitung **Perolehan Informasi** untuk setiap fitur terhadap target
 2. Bandingkan dengan **ambang batas** yang ditentukan pengguna (bawaan: 0.05)
 3. Fitur dengan nilai ≥ ambang batas **dipertahankan**, sisanya dieliminasi
@@ -287,11 +399,11 @@ selected_by_ig = ig_df[ig_df['Perolehan Informasi'] >= ig_threshold]['Fitur'].to
 
 Algoritma C4.5 diimplementasikan menggunakan penggolong Pohon Keputusan dari scikit-learn dengan parameter:
 
-| Parameter | Nilai | Keterangan |
-|-----------|-------|------------|
-| `kriteria` | `'entropi'` | Menggunakan **Perolehan Informasi** (Berbasis entropi) sebagai kriteria pemisahan — ciri khas C4.5 |
-| `kedalaman_maksimal` | 7 (bawaan, dapat diatur 3–15) | Kedalaman maksimum pohon untuk mencegah *overfitting* |
-| `kondisi_acak` | 42 | Reproduktibilitas |
+| Parameter            | Nilai                         | Keterangan                                                                                         |
+| -------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------- |
+| `kriteria`           | `'entropi'`                   | Menggunakan **Perolehan Informasi** (Berbasis entropi) sebagai kriteria pemisahan — ciri khas C4.5 |
+| `kedalaman_maksimal` | 7 (bawaan, dapat diatur 3–15) | Kedalaman maksimum pohon untuk mencegah _overfitting_                                              |
+| `kondisi_acak`       | 42                            | Reproduktibilitas                                                                                  |
 
 ```python
 # Implementasi (app.py, baris 966-971)
@@ -346,12 +458,12 @@ Divisualisasikan dalam **grafik batang horizontal** dengan warna gradasi.
 
 ### Metrik Evaluasi
 
-| Metrik | Rumus | Keterangan |
-|--------|---------|------------|
-| **Akurasi** | `(TP + TN) / Total` | Persentase prediksi benar secara keseluruhan |
-| **Presisi** | `TP / (TP + FP)` | Dari yang diprediksi Putus Sekolah, berapa yang benar-benar Putus Sekolah |
-| **Daya Ingat (Sensitivitas)** | `TP / (TP + FN)` | Dari yang benar-benar Putus Sekolah, berapa yang berhasil terdeteksi |
-| **Skor-F1** | `2 × (Presisi × Daya Ingat) / (Presisi + Daya Ingat)` | Rata-rata harmonik dari Presisi dan Daya Ingat |
+| Metrik                        | Rumus                                                 | Keterangan                                                                |
+| ----------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------- |
+| **Akurasi**                   | `(TP + TN) / Total`                                   | Persentase prediksi benar secara keseluruhan                              |
+| **Presisi**                   | `TP / (TP + FP)`                                      | Dari yang diprediksi Putus Sekolah, berapa yang benar-benar Putus Sekolah |
+| **Daya Ingat (Sensitivitas)** | `TP / (TP + FN)`                                      | Dari yang benar-benar Putus Sekolah, berapa yang berhasil terdeteksi      |
+| **Skor-F1**                   | `2 × (Presisi × Daya Ingat) / (Presisi + Daya Ingat)` | Rata-rata harmonik dari Presisi dan Daya Ingat                            |
 
 ```python
 # Implementasi (app.py, baris 976-980)
@@ -363,17 +475,17 @@ f1 = f1_score(y_test, y_pred, zero_division=0)
 
 ### Visualisasi Evaluasi
 
-| Visualisasi | Pustaka | Keterangan |
-|-------------|---------|------------|
-| **Matriks Kebingungan** | Seaborn | Matriks 2×2 menunjukkan distribusi TP, TN, FP, FN |
-| **Kurva ROC** | Matplotlib | Kurva pertukaran antara Tingkat Positif Benar dan Tingkat Positif Salah |
-| **AUC (Luas Di Bawah Kurva)** | `sklearn.metrics.auc` | Nilai 0–1, semakin mendekati 1 semakin baik |
-| **Pohon Keputusan** | `sklearn.tree` | Visualisasi struktur pohon lengkap |
-| **Tingkat Kepentingan Fitur** | Matplotlib | Grafik batang horizontal menunjukkan kontribusi setiap fitur |
-| **Peta Panas Korelasi** | Seaborn | Matriks korelasi antar fitur |
-| **Diagram Lingkaran** | Matplotlib | Distribusi prediksi Putus Sekolah vs Tidak Putus Sekolah |
-| **Diagram Kotak** | Seaborn | Sebaran nilai per status prediksi |
-| **Laporan Klasifikasi** | scikit-learn | Laporan lengkap per kelas (presisi, daya ingat, skor-f1, dukungan) |
+| Visualisasi                   | Pustaka               | Keterangan                                                              |
+| ----------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| **Matriks Kebingungan**       | Seaborn               | Matriks 2×2 menunjukkan distribusi TP, TN, FP, FN                       |
+| **Kurva ROC**                 | Matplotlib            | Kurva pertukaran antara Tingkat Positif Benar dan Tingkat Positif Salah |
+| **AUC (Luas Di Bawah Kurva)** | `sklearn.metrics.auc` | Nilai 0–1, semakin mendekati 1 semakin baik                             |
+| **Pohon Keputusan**           | `sklearn.tree`        | Visualisasi struktur pohon lengkap                                      |
+| **Tingkat Kepentingan Fitur** | Matplotlib            | Grafik batang horizontal menunjukkan kontribusi setiap fitur            |
+| **Peta Panas Korelasi**       | Seaborn               | Matriks korelasi antar fitur                                            |
+| **Diagram Lingkaran**         | Matplotlib            | Distribusi prediksi Putus Sekolah vs Tidak Putus Sekolah                |
+| **Diagram Kotak**             | Seaborn               | Sebaran nilai per status prediksi                                       |
+| **Laporan Klasifikasi**       | scikit-learn          | Laporan lengkap per kelas (presisi, daya ingat, skor-f1, dukungan)      |
 
 ---
 
@@ -396,9 +508,9 @@ streamlit run app.py
 Buka `http://localhost:8501` dan masuk menggunakan salah satu akun bawaan:
 
 | Nama Pengguna | Kata Sandi | Peran |
-|----------|----------|------|
-| `bk` | `admin123` | BK |
-| `guru` | `admin123` | Guru |
+| ------------- | ---------- | ----- |
+| `bk`          | `admin123` | BK    |
+| `guru`        | `admin123` | Guru  |
 
 ---
 

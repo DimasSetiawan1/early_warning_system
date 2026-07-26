@@ -139,5 +139,5 @@ def run_preprocessing_demo(filepath):
     print("="*70)
 
 if __name__ == "__main__":
-    filepath = 'data_siswa_final.csv' if len(sys.argv) == 1 else sys.argv[1]
+    filepath = 'dataset/data_siswa_final.csv' if len(sys.argv) == 1 else sys.argv[1]
     run_preprocessing_demo(filepath)
