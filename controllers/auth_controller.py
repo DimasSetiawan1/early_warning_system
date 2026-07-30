@@ -15,7 +15,7 @@ def init_session_state():
         'username': None,
         'role': None,
         'nama_lengkap': None,
-        'current_page': 'Dasbor Riwayat',
+        'current_page': 'Halaman Utama',
     }
     for key, value in defaults.items():
         if key not in st.session_state:

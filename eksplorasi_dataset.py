@@ -61,4 +61,4 @@ def run_exploration(filepath):
 
 if __name__ == "__main__":
     # Menjalankan eksplorasi untuk dataset primer
-    run_exploration('data_dummy_siswa.csv')
+    run_exploration('dataset/data_siswa_final.csv')

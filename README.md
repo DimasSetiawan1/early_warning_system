@@ -56,7 +56,7 @@ early_warning_system/
 ├── app.py                          # Entry point (router utama, ~60 baris)
 ├── db.py                           # Modul basis data SQLite (koneksi, CRUD, data awal)
 ├── requirements.txt                # Daftar dependensi Python
-├── penjabaran_fitur_dataset.md     # Dokumentasi lengkap 14 fitur himpunan data
+├── penjabaran_fitur_dataset.md     # Dokumentasi lengkap fitur himpunan data
 │
 ├── model_c45_dropout.pkl           # Model C4.5 pra-latih (Himpunan Data UCI)
 ├── scaler_dropout.pkl              # Pembuat Skala Standar pra-latih (UCI)
@@ -86,7 +86,9 @@ early_warning_system/
 │   └── prediction_result_view.py   # Hasil & visualisasi prediksi lengkap
 │
 ├── dataset/
-│   └── data_dummy_siswa.csv        # Data tiruan 501 baris, 14 fitur + 1 target
+│   ├── data_siswa.csv              # Data awal siswa
+│   └── fix/
+│       └── data_siswa.csv          # Himpunan data final siap pakai
 │
 ├── uploads/                        # Direktori penyimpanan berkas yang diunggah pengguna
 │   └── .gitkeep
@@ -213,25 +215,29 @@ Sistem menggunakan **autentikasi berbasis sesi** dengan 2 peran pengguna:
 
 ## 📊 Himpunan Data & Fitur
 
-### Deskripsi Himpunan Data (`data_siswa_final.csv`)
+### Deskripsi Himpunan Data (`fix/data_siswa.csv`)
 
-Himpunan data utama yang digunakan terdiri dari **5 fitur utama** (akademik, kehadiran, kedisiplinan, dan sosial ekonomi) serta **1 kolom target**:
+Himpunan data utama yang digunakan terdiri dari **10 kolom** (identitas, demografi, dan metrik prediksi) dengan fitur pendorong utama serta **1 kolom target**:
 
-| No  | Nama Fitur           | Kategori     | Tipe Data               | Deskripsi / Rentang Nilai                              |
-| --- | -------------------- | ------------ | ----------------------- | ------------------------------------------------------ |
-| 1   | `NISN`               | Identitas    | Numerik (int)           | Nomor Induk Siswa Nasional (Pengenal unik)             |
-| 2   | `Kehadiran`          | Kehadiran    | Numerik (float)         | Persentase Kehadiran Siswa (48.0% – 100.0%)            |
-| 3   | `Nilai_Rata`         | Akademik     | Numerik (float)         | Nilai Rata-rata Kumulatif Siswa (38.0 – 95.0)          |
-| 4   | `Jumlah_Pelanggaran` | Kedisiplinan | Numerik (int)           | Frekuensi / Poin Pelanggaran Tata Tertib (0 – 19)      |
-| 5   | `Penghasilan_Ortu`   | Ekonomi      | Kategorik Ordinal (int) | Kategori Penghasilan Orang Tua (1 = Low s.d. 4 = High) |
-| —   | `Status`             | **Target**   | Kategorik Multi-Kelas   | Status Siswa (`Non-Dropout`, `DO-Nilai`, `DO-Masalah`) |
+| No  | Nama Fitur           | Kategori     | Tipe Data             | Deskripsi / Rentang Nilai                                 |
+| --- | -------------------- | ------------ | --------------------- | --------------------------------------------------------- |
+| 1   | `NISN`               | Identitas    | Teks/Numerik          | Nomor Induk Siswa Nasional (Pengenal unik)                |
+| 2   | `Nama`               | Identitas    | Teks                  | Nama lengkap siswa                                        |
+| 3   | `Kelas`              | Identitas    | Teks                  | Kelas siswa                                               |
+| 4   | `Angkatan`           | Identitas    | Teks/Numerik          | Tahun angkatan siswa                                      |
+| 5   | `Gender`             | Demografi    | Kategorik             | Jenis kelamin siswa                                       |
+| 6   | `Nilai_Rata_Rata`    | Akademik     | Numerik (float)       | Nilai Rata-rata Kumulatif Siswa                           |
+| 7   | `Kehadiran_Persen`   | Kehadiran    | Numerik (float)       | Persentase Kehadiran Siswa                                |
+| 8   | `Panggilan_BK`       | Kedisiplinan | Numerik (int)         | Frekuensi / Poin Pelanggaran & Panggilan BK               |
+| 9   | `Status_bantuan_PIP` | Ekonomi      | Kategorik (Ya/Tidak)  | Status penerimaan bantuan PIP                             |
+| 10  | `Status_DO`          | **Target**   | Kategorik Multi-Kelas | Status Siswa (`Non-Dropout`, `DO-Akademik`, `DO-Masalah`) |
 
 ### Dua Mode Analisis
 
 | Mode                                  | Sumber Data                                                                         | Proses                                                                            |
 | ------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
 | **Eksperimen (Himpunan Data UCI)**    | Himpunan data sekunder UCI (_Prediksi Siswa Putus Sekolah dan Kesuksesan Akademik_) | Menggunakan model **pra-latih** (`model_c45_dropout.pkl`) dengan 8 fitur terpilih |
-| **Data Primer (SMK Tunas Teknologi)** | Data lokal 14 fitur konteks SMA/SMK Indonesia                                       | Model dilatih **secara langsung** dari data yang diunggah                         |
+| **Data Primer (SMK Tunas Teknologi)** | Data lokal dengan fitur sesuai konteks SMA/SMK Indonesia (`fix/data_siswa.csv`)     | Model dilatih **secara langsung** dari data yang diunggah                         |
 
 ---
 
@@ -477,15 +483,18 @@ f1 = f1_score(y_test, y_pred, zero_division=0)
 
 | Visualisasi                   | Pustaka               | Keterangan                                                              |
 | ----------------------------- | --------------------- | ----------------------------------------------------------------------- |
-| **Matriks Kebingungan**       | Seaborn               | Matriks 2×2 menunjukkan distribusi TP, TN, FP, FN                       |
+| **Matriks Kebingungan**       | Seaborn               | Matriks menunjukkan distribusi TP, TN, FP, FN per kelas                 |
 | **Kurva ROC**                 | Matplotlib            | Kurva pertukaran antara Tingkat Positif Benar dan Tingkat Positif Salah |
 | **AUC (Luas Di Bawah Kurva)** | `sklearn.metrics.auc` | Nilai 0–1, semakin mendekati 1 semakin baik                             |
 | **Pohon Keputusan**           | `sklearn.tree`        | Visualisasi struktur pohon lengkap                                      |
 | **Tingkat Kepentingan Fitur** | Matplotlib            | Grafik batang horizontal menunjukkan kontribusi setiap fitur            |
 | **Peta Panas Korelasi**       | Seaborn               | Matriks korelasi antar fitur                                            |
-| **Diagram Lingkaran**         | Matplotlib            | Distribusi prediksi Putus Sekolah vs Tidak Putus Sekolah                |
-| **Diagram Kotak**             | Seaborn               | Sebaran nilai per status prediksi                                       |
+| **Diagram Lingkaran**         | Matplotlib            | Proporsi Siswa Berisiko (Dropout)                                       |
+| **Grafik Batang**             | Matplotlib            | Distribusi Siswa Berisiko (Dropout)                                     |
+| **Diagram Kotak (Boxplot)**   | Seaborn               | Sebaran nilai seluruh fitur prediksi untuk Siswa Berisiko               |
 | **Laporan Klasifikasi**       | scikit-learn          | Laporan lengkap per kelas (presisi, daya ingat, skor-f1, dukungan)      |
+| **Tabel Missing Values**      | Pandas/Streamlit      | Rekapitulasi nilai kosong (NaN) beserta persentasenya                   |
+| **Tabel Outliers (IQR)**      | Pandas/Streamlit      | Rekapitulasi batas IQR dan jumlah pencilan data                         |
 
 ---
 

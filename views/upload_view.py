@@ -10,41 +10,41 @@ from models.file_utils import format_file_size, format_datetime
 
 def show_upload_page():
     """Halaman unggah berkas himpunan data."""
-    st.header("📤 Unggah Berkas Himpunan Data")
-    st.markdown("Unggah file dataset siswa dalam format **CSV** atau **Excel (.xlsx)** untuk digunakan dalam analisis prediksi.")
+    st.markdown("<h1 style='font-size: 24px; font-weight: 700; color: var(--color-primary); margin-bottom: 8px;'>Unggah Berkas Himpunan Data</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 14px; color: var(--color-text-secondary); margin-bottom: 32px;'>Unggah file dataset siswa dalam format CSV atau Excel (.xlsx) untuk digunakan dalam analisis prediksi.</p>", unsafe_allow_html=True)
 
     with st.form("upload_form", clear_on_submit=True):
         uploaded_file = st.file_uploader(
             "Pilih File Himpunan Data",
             type=["csv", "xlsx"],
-            help="File berisi data siswa/mahasiswa untuk diprediksi."
+            help="Format yang didukung: CSV, XLSX. Maksimum 10MB."
         )
         description = st.text_area(
             "Deskripsi File (Opsional)",
             placeholder="Contoh: Data siswa kelas XII IPA semester genap 2024/2025",
             max_chars=500
         )
-        submitted = st.form_submit_button("📤 Unggah Berkas", use_container_width=True)
+        submitted = st.form_submit_button("Unggah Berkas", use_container_width=True)
 
         if submitted and uploaded_file is not None:
             file_id = upload_file(uploaded_file, description, st.session_state.user_id)
             if file_id:
-                st.success(f"✅ File **{uploaded_file.name}** berhasil diupload! (ID: {file_id})")
+                st.success(f"File {uploaded_file.name} berhasil diupload! (ID: {file_id})")
                 st.rerun()
         elif submitted and uploaded_file is None:
-            st.warning("⚠️ Pilih file terlebih dahulu!")
+            st.error("Silakan pilih file terlebih dahulu.")
 
     # Daftar file yang sudah diunggah
-    st.markdown("---")
-    st.subheader("📁 File Yang Sudah Anda Unggah")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>File Yang Sudah Anda Unggah</h2>", unsafe_allow_html=True)
 
     my_files = get_files(role=st.session_state.role, user_id=st.session_state.user_id)
 
     if not my_files:
-        st.info("Belum ada file yang diupload.")
+        st.info("Belum ada file yang diunggah.")
     else:
         for f in my_files:
-            with st.expander(f"📄 {f['original_filename']}"):
+            with st.expander(f"{f['original_filename']}"):
                 col1, col2 = st.columns(2)
                 with col1:
                     st.markdown(f"**Nama File:** {f['original_filename']}")

@@ -35,10 +35,9 @@ def render_stat_card(label, value, subtext="", subtext_color="var(--color-text-s
     </div>
     """
 
-def show_public_dashboard():
-    """Dasbor Halaman Utama Publik."""
-    st.markdown("<h1 style='font-size: 24px; font-weight: 700; color: var(--color-primary); margin-bottom: 0;'>DISTRIBUSI STATUS SISWA</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 16px; color: var(--color-text-secondary); font-weight: 600; margin-bottom: 32px;'>Data Prediksi Risiko Putus Sekolah &middot; SMK Tunas Teknologi</p>", unsafe_allow_html=True)
+def show_riwayat_dashboard():
+    """Dasbor Riwayat Prediksi untuk pengguna login."""
+    st.markdown("<h1 style='font-size: 24px; font-weight: 700; color: var(--color-primary); margin-bottom: 32px;'>Dasbor Riwayat Prediksi</h1>", unsafe_allow_html=True)
 
     history = db.get_prediction_history()
 
@@ -46,8 +45,18 @@ def show_public_dashboard():
         st.info("Belum ada file data riwayat prediksi.")
         return
 
-    selected_h = history[0]
-    st.markdown(f"<p style='font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px;'>Menampilkan hasil prediksi terbaru dari file: <strong>{selected_h['dataset_name']}</strong> ({format_datetime(selected_h['run_at'])})</p>", unsafe_allow_html=True)
+    # Dropdown pilih riwayat
+    history_options = {
+        f"#{h['id']} — {h['dataset_name']} ({format_datetime(h['run_at'])})": h
+        for h in history
+    }
+
+    selected_label = st.selectbox(
+        "Pilih Data / Riwayat untuk Ditampilkan",
+        options=list(history_options.keys()),
+        index=0
+    )
+    selected_h = history_options[selected_label]
 
     # Parse config_json
     config_data = {}

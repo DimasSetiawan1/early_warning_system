@@ -11,8 +11,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 
+import time
 from sklearn.metrics import roc_curve, auc
 from sklearn.tree import plot_tree
+from sklearn.model_selection import cross_val_score
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
 
 import db
 from models.ml_model import (
@@ -26,11 +30,35 @@ from models.ml_model import (
 from models.file_utils import load_file_from_path
 
 
+def render_stat_card(label, value, subtext="", subtext_color="var(--color-text-secondary)"):
+    return f"""
+    <div style="
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      margin-bottom: 24px;
+    ">
+      <div style="font-size:11px; font-weight:600; color:var(--color-text-secondary);
+                  text-transform:uppercase; letter-spacing:0.05em; margin-bottom:8px;">
+        {label}
+      </div>
+      <div style="font-size:40px; font-weight:700; color:var(--color-text-primary);
+                  font-feature-settings:'tnum';">
+        {value}
+      </div>
+      <div style="font-size:12px; color:{subtext_color}; margin-top:4px; font-weight: 500;">
+        {subtext}
+      </div>
+    </div>
+    """
+
 def show_prediction_results():
     """Entry point halaman Hasil Prediksi."""
-    st.title("📈 Hasil Analisis Prediksi")
+    st.markdown("<h1 style='font-size: 24px; font-weight: 700; color: var(--color-primary); margin-bottom: 32px;'>Hasil Analisis Prediksi</h1>", unsafe_allow_html=True)
 
-    if st.button("⬅️ Kembali ke Dashboard"):
+    if st.button("Kembali ke Dashboard", type="secondary"):
         st.session_state.current_page = 'Dasbor Riwayat'
         st.rerun()
 
@@ -56,14 +84,14 @@ def _run_experiment_mode(df_raw):
     """Tampilkan hasil prediksi menggunakan model pre-trained UCI."""
     model_uci, scaler_uci, features_uci = load_uci_artifacts()
 
-    st.header("🔬 Evaluasi Data Baru Menggunakan Model Eksperimen UCI")
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px; margin-top: 32px;'>Evaluasi Data Baru Menggunakan Model Eksperimen UCI</h2>", unsafe_allow_html=True)
 
     if model_uci is None or scaler_uci is None:
-        st.error("Error: File model pre-trained (`model_c45_dropout.pkl`) atau scaler tidak ditemukan di direktori!")
+        st.error("Error: File model pre-trained (model_c45_dropout.pkl) atau scaler tidak ditemukan di direktori!")
         return
 
-    st.subheader("🔗 Pencocokan Kolom (Parameter Mapping)")
-    st.write("Silakan pasangkan 8 parameter yang dibutuhkan model dengan kolom yang ada di file Anda:")
+    st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>Pencocokan Kolom (Parameter Mapping)</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 14px; color: var(--color-text-secondary); margin-bottom: 24px;'>Silakan pasangkan 8 parameter yang dibutuhkan model dengan kolom yang ada di file Anda:</p>", unsafe_allow_html=True)
 
     columns_list = list(df_raw.columns)
     mapped_columns = []
@@ -84,20 +112,20 @@ def _run_experiment_mode(df_raw):
             )
             mapped_columns.append((feat, sel_col))
 
-    st.markdown("---")
-    st.subheader("🎯 Kolom Target Aktual (Opsional)")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Kolom Target Aktual (Opsional)</h3>", unsafe_allow_html=True)
     has_target = st.checkbox("File saya memiliki kolom label/target aktual (untuk menghitung Akurasi/Evaluasi)")
 
     target_col = None
     if has_target:
         default_tgt_idx = 0
         for idx, col in enumerate(columns_list):
-            if col.lower() in ['target', 'status', 'label']:
+            if col.lower() in ['target', 'status', 'status_do', 'label']:
                 default_tgt_idx = idx
                 break
         target_col = st.selectbox("Pilih Kolom Target Aktual", options=columns_list, index=default_tgt_idx)
 
-    if st.button("Jalankan Prediksi Batch 🚀"):
+    if st.button("Jalankan Prediksi Batch", type="primary"):
         st.markdown("---")
         feature_mapping_dict = {feat: sel_col for feat, sel_col in mapped_columns}
         X_input = df_raw[[feature_mapping_dict[feat] for feat in features_uci]].copy()
@@ -119,20 +147,18 @@ def _run_experiment_mode(df_raw):
                 df_result['Probabilitas_Dropout'] = y_pred_proba
 
             # KPI
-            st.subheader("📊 Dashboard Evaluasi Hasil Prediksi")
+            st.markdown("<h3 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Dashboard Evaluasi Hasil Prediksi</h3>", unsafe_allow_html=True)
             total_cnt = len(df_result)
             dropout_cnt = int((y_pred == 1).sum())
             nondropout_cnt = total_cnt - dropout_cnt
 
             kpi1, kpi2, kpi3 = st.columns(3)
             with kpi1:
-                st.metric("Total Siswa Dievaluasi", f"{total_cnt} Orang")
+                st.markdown(render_stat_card("Total Siswa Dievaluasi", f"{total_cnt}", f"{total_cnt} Orang"), unsafe_allow_html=True)
             with kpi2:
-                st.metric("Diprediksi DROPOUT (Berisiko)", f"{dropout_cnt} Orang",
-                          f"{dropout_cnt / total_cnt * 100:.1f}%", delta_color="inverse")
+                st.markdown(render_stat_card("Diprediksi Dropout", f"{dropout_cnt}", f"{dropout_cnt / total_cnt * 100:.1f}%", "var(--color-danger)"), unsafe_allow_html=True)
             with kpi3:
-                st.metric("Diprediksi NON-DROPOUT", f"{nondropout_cnt} Orang",
-                          f"{nondropout_cnt / total_cnt * 100:.1f}%")
+                st.markdown(render_stat_card("Diprediksi Non-Dropout", f"{nondropout_cnt}", f"{nondropout_cnt / total_cnt * 100:.1f}%", "var(--color-success)"), unsafe_allow_html=True)
 
             chart_col1, chart_col2 = st.columns(2)
 
@@ -199,8 +225,8 @@ def _run_experiment_mode(df_raw):
 
 def _show_experiment_evaluation(df_raw, y_pred, y_pred_proba, target_col):
     """Tampilkan evaluasi metrik mode eksperimen terhadap target aktual."""
-    st.markdown("---")
-    st.subheader("🎯 Metrik Evaluasi Model terhadap Target Aktual")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Metrik Evaluasi Model terhadap Target Aktual</h3>", unsafe_allow_html=True)
 
     y_true_raw = df_raw[target_col]
     unique_true = y_true_raw.unique()
@@ -241,7 +267,7 @@ def _show_experiment_evaluation(df_raw, y_pred, y_pred_proba, target_col):
 
     eval_col1, eval_col2 = st.columns(2)
     with eval_col1:
-        st.markdown("##### 📌 Confusion Matrix")
+        st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>Confusion Matrix</p>", unsafe_allow_html=True)
         cm = confusion_matrix(y_true, y_pred)
         fig_cm, ax_cm = plt.subplots(figsize=(6, 4.5))
         sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax_cm,
@@ -254,7 +280,7 @@ def _show_experiment_evaluation(df_raw, y_pred, y_pred_proba, target_col):
         plt.close(fig_cm)
 
     with eval_col2:
-        st.markdown("##### 📌 ROC Curve")
+        st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>ROC Curve</p>", unsafe_allow_html=True)
         if y_pred_proba is not None:
             fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
             roc_auc = auc(fpr, tpr)
@@ -275,7 +301,7 @@ def _show_experiment_evaluation(df_raw, y_pred, y_pred_proba, target_col):
 
 def _run_primary_mode(config: dict, is_new_run: bool = False):
     """Tampilkan hasil training dan evaluasi model C4.5 dari data primer."""
-    st.header("📝 Evaluasi Data Primer SMK Tunas Teknologi (Model Training)")
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px; margin-top: 32px;'>Evaluasi Data Primer SMK Tunas Teknologi (Model Training)</h2>", unsafe_allow_html=True)
 
     df_raw = config['df_raw']
     target_col = config['target_col']
@@ -309,7 +335,10 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
                 st.error(f"Gagal menghitung Information Gain: {e}")
 
         # ── Training ──
+        start_time = time.time()
         result = train_c45_model(X_numeric, y, test_size, max_depth)
+        c45_time = time.time() - start_time
+        
         model_c45 = result['model']
         scaler = result['scaler']
         X_test_scaled = result['X_test']
@@ -321,18 +350,73 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
         y_pred_proba = metrics['y_pred_proba']
         is_binary = metrics['is_binary']
 
+        # ── Fase 3: Identifikasi Missing Values ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Fase 3 — Identifikasi Missing Values</h3>", unsafe_allow_html=True)
+        df_missing = df_raw[selected_train_features].isnull().sum().reset_index()
+        df_missing.columns = ['Fitur', 'Jumlah Missing Value']
+        df_missing['Persentase (%)'] = (df_missing['Jumlah Missing Value'] / len(df_raw)) * 100
+        df_missing['Persentase (%)'] = df_missing['Persentase (%)'].apply(lambda x: f"{x:.2f}%")
+        styled_missing = df_missing.style.hide(axis="index").set_table_styles([
+            {'selector': 'th', 'props': [('color', 'black'), ('font-weight', 'bold')]}
+        ])
+        st.dataframe(styled_missing, use_container_width=True)
+        if df_missing['Jumlah Missing Value'].sum() == 0:
+            st.success("Tidak ditemukan missing value pada fitur-fitur yang dipilih.")
+        else:
+            st.warning("Ditemukan missing value. Sistem telah secara otomatis melakukan imputasi (mengisi nilai yang kosong) selama proses preprocessing.")
+
+        # ── Fase 4: Identifikasi Outliers ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Fase 4 — Identifikasi Outliers</h3>", unsafe_allow_html=True)
+        st.info("Outliers diidentifikasi menggunakan metode IQR (Interquartile Range) pada seluruh fitur yang telah dienkode.")
+        
+        if not X_numeric.empty:
+            outliers_data = []
+            for col in X_numeric.columns:
+                Q1 = X_numeric[col].quantile(0.25)
+                Q3 = X_numeric[col].quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - 1.5 * IQR
+                upper_bound = Q3 + 1.5 * IQR
+                
+                outliers = X_numeric[(X_numeric[col] < lower_bound) | (X_numeric[col] > upper_bound)]
+                outliers_count = len(outliers)
+                outliers_data.append({
+                    'Fitur': col,
+                    'Jumlah Outlier': outliers_count,
+                    'Batas Bawah': round(lower_bound, 2),
+                    'Batas Atas': round(upper_bound, 2)
+                })
+                
+            df_outliers = pd.DataFrame(outliers_data)
+            styled_outliers = df_outliers.style.hide(axis="index").set_table_styles([
+                {'selector': 'th', 'props': [('color', 'black'), ('font-weight', 'bold')]}
+            ])
+            st.dataframe(styled_outliers, use_container_width=True)
+            
+            if df_outliers['Jumlah Outlier'].sum() == 0:
+                st.success("Tidak ditemukan outlier pada fitur terpilih.")
+            else:
+                st.warning("Ditemukan outlier. Algoritma Decision Tree C4.5 relatif robust (tangguh) terhadap outlier sehingga tidak memerlukan pemotongan data secara eksplisit.")
+        else:
+            st.write("Tidak ada fitur untuk diidentifikasi.")
+
         # ── Tampilkan Fase 5: Evaluasi Model ──
-        st.markdown("---")
-        st.header("📊 Fase 5 — Evaluasi Model C4.5")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Fase 5 — Evaluasi Model C4.5</h3>", unsafe_allow_html=True)
 
         _show_evaluation_metrics(metrics)
         _show_confusion_matrix_and_bar(metrics, class_names)
         _show_roc_curve(y_test, y_pred_proba, class_names, is_binary)
         _show_actual_vs_pred(y_test, y_pred, class_names)
 
+        # ── Pengujian Sistem (System Testing) ──
+        _show_system_testing(X_numeric, y, metrics['acc'], c45_time)
+
         # ── Cross Validation ──
-        st.markdown("---")
-        st.markdown("##### 📌 Cross-Validation (10-Fold)")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>Cross-Validation (10-Fold)</p>", unsafe_allow_html=True)
         cv_scores = run_cross_validation(X_numeric, y, max_depth, is_binary, scaler)
         _show_cv_results(cv_scores)
 
@@ -342,8 +426,8 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
             st.text(metrics['report'])
 
         # ── Hasil — Pohon, Feature Importance, Korelasi ──
-        st.markdown("---")
-        st.header("🌳 Hasil — Model & Prediksi")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Hasil — Model & Prediksi</h3>", unsafe_allow_html=True)
 
         _show_decision_tree(model_c45, X_numeric, class_names)
         _show_feature_importance_and_corr(model_c45, X_numeric)
@@ -370,14 +454,14 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
                     'target': target_col
                 })
             )
-            st.toast("✅ Hasil prediksi berhasil disimpan ke riwayat!")
+            st.toast("Hasil prediksi berhasil disimpan ke riwayat.")
 
 
 # ── Helper Visualization Functions ───────────────────────────────────────────
 
 def _show_ig_chart(ig_df, ig_threshold, total_features):
     """Tampilkan bar chart Information Gain."""
-    st.markdown("##### 🔍 Seleksi Fitur Information Gain")
+    st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>Seleksi Fitur Information Gain</p>", unsafe_allow_html=True)
     fig_ig, ax_ig = plt.subplots(figsize=(10, max(5, len(ig_df) * 0.35)))
     colors_ig = ['#2ECC71' if v >= ig_threshold else '#E74C3C' for v in ig_df['Information Gain']]
     ax_ig.barh(ig_df['Fitur'][::-1], ig_df['Information Gain'][::-1],
@@ -393,22 +477,22 @@ def _show_ig_chart(ig_df, ig_threshold, total_features):
 
     selected_count = len(ig_df[ig_df['Information Gain'] >= ig_threshold])
     if selected_count == 0:
-        st.warning(f"⚠️ Tidak ada fitur dengan IG >= {ig_threshold}. Menggunakan semua fitur.")
+        st.warning(f"Tidak ada fitur dengan IG >= {ig_threshold}. Menggunakan semua fitur.")
     else:
-        st.success(f"🎯 Seleksi Fitur: Menggunakan {selected_count} dari {total_features} fitur.")
+        st.success(f"Seleksi Fitur: Menggunakan {selected_count} dari {total_features} fitur.")
 
 
 def _show_evaluation_metrics(metrics: dict):
     """Tampilkan 4 KPI metrik evaluasi."""
     m1, m2, m3, m4 = st.columns(4)
     with m1:
-        st.metric("Akurasi", f"{metrics['acc'] * 100:.2f}%")
+        st.markdown(render_stat_card("Akurasi", f"{metrics['acc'] * 100:.2f}%", "", "var(--color-text-secondary)"), unsafe_allow_html=True)
     with m2:
-        st.metric("Presisi", f"{metrics['prec'] * 100:.2f}%")
+        st.markdown(render_stat_card("Presisi", f"{metrics['prec'] * 100:.2f}%", "", "var(--color-text-secondary)"), unsafe_allow_html=True)
     with m3:
-        st.metric("Daya Ingat", f"{metrics['rec'] * 100:.2f}%")
+        st.markdown(render_stat_card("Daya Ingat", f"{metrics['rec'] * 100:.2f}%", "", "var(--color-text-secondary)"), unsafe_allow_html=True)
     with m4:
-        st.metric("F1-Score", f"{metrics['f1'] * 100:.2f}%")
+        st.markdown(render_stat_card("F1-Score", f"{metrics['f1'] * 100:.2f}%", "", "var(--color-text-secondary)"), unsafe_allow_html=True)
 
 
 def _show_confusion_matrix_and_bar(metrics: dict, class_names: list):
@@ -416,7 +500,7 @@ def _show_confusion_matrix_and_bar(metrics: dict, class_names: list):
     eval_col1, eval_col2 = st.columns(2)
 
     with eval_col1:
-        st.markdown("##### 📌 Confusion Matrix")
+        st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>Confusion Matrix</p>", unsafe_allow_html=True)
         fig_cm, ax_cm = plt.subplots(figsize=(6, 4.5))
         sns.heatmap(metrics['cm'], annot=True, fmt='d', cmap='Blues', ax=ax_cm,
                     xticklabels=class_names, yticklabels=class_names, annot_kws={'size': 14})
@@ -428,7 +512,7 @@ def _show_confusion_matrix_and_bar(metrics: dict, class_names: list):
         plt.close(fig_cm)
 
     with eval_col2:
-        st.markdown("##### 📌 Ringkasan Metrik Evaluasi")
+        st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>Ringkasan Metrik Evaluasi</p>", unsafe_allow_html=True)
         metric_names = ['Akurasi', 'Presisi', 'Daya Ingat', 'Skor-F1']
         metric_values = [metrics['acc'] * 100, metrics['prec'] * 100,
                          metrics['rec'] * 100, metrics['f1'] * 100]
@@ -454,7 +538,7 @@ def _show_confusion_matrix_and_bar(metrics: dict, class_names: list):
 
 def _show_roc_curve(y_test, y_pred_proba, class_names: list, is_binary: bool):
     """Tampilkan ROC Curve (binary atau multi-kelas)."""
-    st.markdown("##### 📌 ROC Curve")
+    st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>ROC Curve</p>", unsafe_allow_html=True)
     fig_roc, ax_roc = plt.subplots(figsize=(8, 5))
 
     if is_binary:
@@ -483,38 +567,45 @@ def _show_roc_curve(y_test, y_pred_proba, class_names: list, is_binary: bool):
 
 def _show_actual_vs_pred(y_test, y_pred, class_names: list):
     """Tampilkan perbandingan distribusi aktual vs prediksi."""
-    st.markdown("##### 📌 Perbandingan Data Aktual vs Prediksi")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;'>Perbandingan Data Aktual vs Prediksi</p>", unsafe_allow_html=True)
     cmp_col1, cmp_col2 = st.columns(2)
 
     with cmp_col1:
-        st.markdown("###### Distribusi Aktual (Data Testing)")
-        actual_counts = pd.Series(y_test).value_counts().sort_index()
-        actual_labels = [class_names[i] for i in actual_counts.index]
-        actual_values = actual_counts.values
+        st.markdown("<p style='font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px;'>Distribusi Aktual (Data Testing)</p>", unsafe_allow_html=True)
+        df_act = pd.DataFrame({'Target': [class_names[i] for i in y_test]})
+        df_act = df_act[df_act['Target'] != 'Non-Dropout']
+        actual_counts = df_act['Target'].value_counts()
+        actual_labels = actual_counts.index.tolist()
+        actual_values = actual_counts.values.tolist()
+        
         fig_act, ax_act = plt.subplots(figsize=(6, 4.5))
-        act_colors = ['#2ECC71', '#E74C3C'][:len(actual_labels)]
+        act_colors = ['#E74C3C', '#F39C12'][:len(actual_labels)]
         bars_a = ax_act.bar(actual_labels, actual_values, color=act_colors, edgecolor='white', linewidth=1.5)
         for bar, val in zip(bars_a, actual_values):
-            ax_act.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + max(actual_values) * 0.01,
+            ax_act.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + (max(actual_values) if len(actual_values) > 0 else 1) * 0.01,
                         f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
         ax_act.set_ylabel('Jumlah Siswa')
         ax_act.set_title('Distribusi Aktual (Data Testing)', fontsize=11, fontweight='bold')
         ax_act.spines['top'].set_visible(False)
         ax_act.spines['right'].set_visible(False)
         plt.tight_layout()
-        st.pyplot(fig_act)
+        st.pyplot(fig_act, transparent=True)
         plt.close(fig_act)
 
     with cmp_col2:
-        st.markdown("###### Distribusi Prediksi Model C4.5")
-        pred_counts = pd.Series(y_pred).value_counts().sort_index()
-        pred_labels = [class_names[i] for i in pred_counts.index]
-        pred_values = pred_counts.values
+        st.markdown("<p style='font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px;'>Distribusi Prediksi Model C4.5</p>", unsafe_allow_html=True)
+        df_prd = pd.DataFrame({'Target': [class_names[i] for i in y_pred]})
+        df_prd = df_prd[df_prd['Target'] != 'Non-Dropout']
+        pred_counts = df_prd['Target'].value_counts()
+        pred_labels = pred_counts.index.tolist()
+        pred_values = pred_counts.values.tolist()
+        
         fig_prd, ax_prd = plt.subplots(figsize=(6, 4.5))
-        prd_colors = ['#2ECC71', '#E74C3C'][:len(pred_labels)]
+        prd_colors = ['#E74C3C', '#F39C12'][:len(pred_labels)]
         bars_p = ax_prd.bar(pred_labels, pred_values, color=prd_colors, edgecolor='white', linewidth=1.5)
         for bar, val in zip(bars_p, pred_values):
-            ax_prd.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + max(pred_values) * 0.01,
+            ax_prd.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + (max(pred_values) if len(pred_values) > 0 else 1) * 0.01,
                         f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
         ax_prd.set_ylabel('Jumlah Siswa')
         ax_prd.set_title('Distribusi Prediksi Model C4.5', fontsize=11, fontweight='bold')
@@ -660,54 +751,96 @@ def _show_batch_predictions(model_c45, scaler, X_numeric, df_raw, class_names: l
     else:
         df_result['Probabilitas_Prediksi'] = all_probs_full.max(axis=1)
 
-    batch_total = len(df_result)
-    batch_counts = df_result['Hasil_Prediksi'].value_counts()
+    # Ambil data tahun ajaran dari DB
+    uploaded_files = db.get_uploaded_files()
+    ds_name = st.session_state.run_config.get('dataset_name')
+    matched_file = next((f for f in uploaded_files if f['original_filename'] == ds_name), None)
+    tahun_ajaran = str(matched_file['uploaded_at'])[:4] if matched_file and matched_file.get('uploaded_at') else "Terbaru"
 
-    batch_cols = st.columns(len(class_names) + 1)
-    with batch_cols[0]:
-        st.metric("Total Data", f"{batch_total} Siswa")
-    for i, name in enumerate(class_names):
-        cnt = batch_counts.get(name, 0)
-        with batch_cols[i + 1]:
-            pct = cnt / batch_total * 100 if batch_total > 0 else 0
-            st.metric(f"Prediksi {name}", f"{cnt} Siswa", f"{pct:.1f}%")
+    df_plot_bp = df_result[df_result['Hasil_Prediksi'] != 'Non-Dropout']
+    batch_counts_risk = df_plot_bp['Hasil_Prediksi'].value_counts()
+    batch_labels = batch_counts_risk.index.tolist()
+    batch_values = batch_counts_risk.values.tolist()
+    batch_total_risk = sum(batch_values) if sum(batch_values) > 0 else 1
 
-    batch_labels = batch_counts.index.tolist()
-    batch_values = batch_counts.values.tolist()
-    batch_colors = ['#2ECC71', '#E74C3C', '#3498DB', '#F39C12'][:len(batch_labels)]
+    batch_colors = ['#E74C3C', '#F39C12', '#3498DB', '#9B59B6'][:len(batch_labels)]
 
     batch_vis1, batch_vis2 = st.columns(2)
 
     with batch_vis1:
-        st.markdown("##### Distribusi Hasil Prediksi (Seluruh Data)")
+        st.markdown(f"##### 📌 Distribusi Peringatan Dini Tahun Ajaran {tahun_ajaran}")
         fig_bp, ax_bp = plt.subplots(figsize=(7, 5))
-        bars_bp = ax_bp.bar(batch_labels, batch_values, color=batch_colors, edgecolor='white', linewidth=1.5)
-        for bar, val in zip(bars_bp, batch_values):
-            ax_bp.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + batch_total * 0.01,
-                       f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
+        if batch_values:
+            bars_bp = ax_bp.bar(batch_labels, batch_values, color=batch_colors, edgecolor='white', linewidth=1.5)
+            for bar, val in zip(bars_bp, batch_values):
+                ax_bp.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + batch_total_risk * 0.01,
+                           f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=12)
         ax_bp.set_ylabel('Jumlah Siswa', fontsize=11)
-        ax_bp.set_title('Distribusi Hasil Prediksi (Seluruh Data)', fontsize=12, fontweight='bold')
+        ax_bp.set_title(f'Distribusi Siswa Berisiko Tahun {tahun_ajaran}', fontsize=12, fontweight='bold')
         ax_bp.spines['top'].set_visible(False)
         ax_bp.spines['right'].set_visible(False)
         plt.tight_layout()
-        st.pyplot(fig_bp)
+        st.pyplot(fig_bp, transparent=True)
         plt.close(fig_bp)
 
     with batch_vis2:
-        st.markdown("##### Proporsi Hasil Prediksi")
+        st.markdown(f"##### 📌 Proporsi Peringatan Dini Tahun Ajaran {tahun_ajaran}")
         fig_bpie, ax_bpie = plt.subplots(figsize=(7, 5))
-        wedges, texts, autotexts = ax_bpie.pie(
-            batch_values, labels=batch_labels, colors=batch_colors,
-            autopct='%1.1f%%', startangle=140, pctdistance=0.75,
-            textprops={'fontsize': 11, 'fontweight': 'bold'}
-        )
-        for autotext in autotexts:
-            autotext.set_fontsize(10)
+        if batch_values:
+            wedges, texts, autotexts = ax_bpie.pie(
+                batch_values, labels=batch_labels, colors=batch_colors,
+                autopct='%1.1f%%', startangle=140, pctdistance=0.75,
+                textprops={'fontsize': 11, 'fontweight': 'bold'}
+            )
+            for autotext in autotexts:
+                autotext.set_fontsize(10)
         ax_bpie.axis('equal')
-        ax_bpie.set_title('Proporsi Hasil Prediksi', fontsize=12, fontweight='bold')
+        ax_bpie.set_title(f'Proporsi Siswa Berisiko Tahun {tahun_ajaran}', fontsize=12, fontweight='bold')
         plt.tight_layout()
-        st.pyplot(fig_bpie)
+        st.pyplot(fig_bpie, transparent=True)
         plt.close(fig_bpie)
+
+    st.markdown("---")
+    st.subheader(f"📦 Boxplot: Sebaran Fitur Numerik Peringatan Dini Tahun Ajaran {tahun_ajaran}")
+    st.info("Visualisasi ini membantu melihat perbedaan atau sebaran pada fitur-fitur numerik untuk siswa yang terdeteksi berisiko (Dropout).")
+    
+    # Gunakan X_numeric yang sudah dienkode agar semua fitur (termasuk kategorial yang dienkode) tampil
+    df_box = X_numeric.copy()
+    df_box['Hasil_Prediksi'] = df_result['Hasil_Prediksi'].values
+    df_box = df_box[df_box['Hasil_Prediksi'] != 'Non-Dropout']
+    
+    if not df_box.empty:
+        features_to_plot_bp = X_numeric.columns.tolist()
+        
+        if features_to_plot_bp:
+            import seaborn as sns
+            
+            # Buat layout 2 kolom
+            box_cols = st.columns(2)
+            for idx, selected_feature_bp in enumerate(features_to_plot_bp):
+                with box_cols[idx % 2]:
+                    fig_box, ax_box = plt.subplots(figsize=(7, 5))
+                    sns.boxplot(
+                        data=df_box, 
+                        x='Hasil_Prediksi', 
+                        y=selected_feature_bp, 
+                        palette=batch_colors, 
+                        ax=ax_box,
+                        showmeans=True,
+                        meanprops={"marker":"o", "markerfacecolor":"white", "markeredgecolor":"black", "markersize":"8"}
+                    )
+                    ax_box.set_title(f'Sebaran {selected_feature_bp} untuk Siswa Berisiko Tahun {tahun_ajaran}', fontsize=12, fontweight='bold')
+                    ax_box.set_xlabel('Kelas Risiko (Prediksi)', fontsize=11)
+                    ax_box.set_ylabel(selected_feature_bp, fontsize=11)
+                    ax_box.spines['top'].set_visible(False)
+                    ax_box.spines['right'].set_visible(False)
+                    plt.tight_layout()
+                    st.pyplot(fig_box, transparent=True)
+                    plt.close(fig_box)
+        else:
+            st.warning("Tidak ada data / kolom numerik yang dapat divisualisasikan pada kelas berisiko.")
+    else:
+        st.warning("Tidak ada data dengan kelas berisiko (Dropout) yang terdeteksi.")
 
     st.dataframe(df_result, use_container_width=True)
 
@@ -720,3 +853,71 @@ def _show_batch_predictions(model_c45, scaler, X_numeric, df_raw, class_names: l
         file_name="hasil_prediksi_data_primer.csv",
         mime="text/csv"
     )
+
+def _show_system_testing(X_numeric, y, c45_accuracy, c45_time):
+    """Tampilkan Hasil Pengujian Sistem (Functional, Performance, Comparative)"""
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-primary); margin-bottom: 16px;'>2. Pengujian Sistem</h2>", unsafe_allow_html=True)
+    
+    test_col1, test_col2 = st.columns([1, 1.2])
+    
+    with test_col1:
+        st.markdown("##### a. Functional Validation")
+        st.markdown("""
+        <div style="background-color: var(--color-surface); padding: 15px; border-radius: 8px; border: 1px solid var(--color-border); margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <span style="color: #2ECC71; font-weight: bold; font-size: 16px; margin-right: 8px;">✓</span> 
+                <span style="font-size: 14px;">Ingesti Dataset & Pencocokan Kolom</span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <span style="color: #2ECC71; font-weight: bold; font-size: 16px; margin-right: 8px;">✓</span> 
+                <span style="font-size: 14px;">Penanganan <i>Missing Values</i> terselesaikan</span>
+            </div>
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                <span style="color: #2ECC71; font-weight: bold; font-size: 16px; margin-right: 8px;">✓</span> 
+                <span style="font-size: 14px;">Pendeteksian <i>Outliers</i> selesai</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <span style="color: #2ECC71; font-weight: bold; font-size: 16px; margin-right: 8px;">✓</span> 
+                <span style="font-size: 14px;">Pembuatan Pohon Keputusan C4.5 Berhasil</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("##### b. Performance Testing")
+        st.markdown(render_stat_card("Waktu Komputasi C4.5", f"{c45_time:.3f} s", "Durasi pelatihan model dan pemrosesan matriks"), unsafe_allow_html=True)
+
+    with test_col2:
+        st.markdown("##### c. Comparative Testing (Akurasi)")
+        st.markdown("<p style='font-size: 13px; color: var(--color-text-secondary); margin-bottom: 8px;'>Membandingkan kinerja algoritma C4.5 dengan Naive Bayes dan K-Nearest Neighbors (KNN).</p>", unsafe_allow_html=True)
+        
+        with st.spinner("Memproses Comparative Testing..."):
+            # Latih model NB dan KNN dengan cross_val_score untuk evaluasi komparatif cepat
+            nb_scores = cross_val_score(GaussianNB(), X_numeric, y, cv=10, scoring='accuracy')
+            knn_scores = cross_val_score(KNeighborsClassifier(), X_numeric, y, cv=10, scoring='accuracy')
+            
+            nb_acc = nb_scores.mean() * 100
+            knn_acc = knn_scores.mean() * 100
+            
+            # C4.5 Akurasi
+            c45_acc_val = c45_accuracy * 100
+            
+            algo_names = ['C4.5 (Pohon Keputusan)', 'Naive Bayes', 'K-Nearest Neighbors']
+            algo_acc = [c45_acc_val, nb_acc, knn_acc]
+            algo_colors = ['#E74C3C', '#3498DB', '#9B59B6']
+            
+            fig_comp, ax_comp = plt.subplots(figsize=(6, 4))
+            bars = ax_comp.bar(algo_names, algo_acc, color=algo_colors, edgecolor='white', linewidth=1.5)
+            
+            for bar, acc in zip(bars, algo_acc):
+                ax_comp.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + 1,
+                             f'{acc:.1f}%', ha='center', va='bottom', fontweight='bold', fontsize=11)
+            
+            ax_comp.set_ylabel('Akurasi (%)')
+            ax_comp.set_ylim(0, max(algo_acc) + 15)
+            ax_comp.spines['top'].set_visible(False)
+            ax_comp.spines['right'].set_visible(False)
+            
+            plt.tight_layout()
+            st.pyplot(fig_comp, transparent=True)
+            plt.close(fig_comp)

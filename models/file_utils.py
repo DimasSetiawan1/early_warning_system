@@ -18,6 +18,25 @@ def load_file_from_path(file_path: str):
             df = pd.read_csv(file_path, sep=sep)
         else:
             df = pd.read_excel(file_path)
+
+        if df is not None and not df.empty:
+            # Clean missing identifier rows
+            valid_id_cols = [c for c in ['NIS', 'Nama', 'NISN'] if c in df.columns]
+            if valid_id_cols:
+                df = df.dropna(subset=valid_id_cols).reset_index(drop=True)
+
+            # Auto derive Status column if missing
+            if 'Status' not in df.columns and 'Status_DO' not in df.columns:
+                import numpy as np
+                cond_do = pd.Series(False, index=df.index)
+                if 'Kehadiran_Persen' in df.columns:
+                    cond_do = cond_do | (df['Kehadiran_Persen'] < 85)
+                if 'Sikap_Jumlah_Panggilan_BK' in df.columns:
+                    cond_do = cond_do | (df['Sikap_Jumlah_Panggilan_BK'] >= 2)
+                if 'Nilai_Rata_Rata' in df.columns:
+                    cond_do = cond_do | (df['Nilai_Rata_Rata'] < 75)
+                df['Status_DO'] = np.where(cond_do, 'Dropout', 'Non-Dropout')
+
         return df
     except Exception as e:
         st.error(f"Gagal membaca file: {e}")

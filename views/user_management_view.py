@@ -13,16 +13,17 @@ from models.file_utils import format_datetime
 
 def show_user_management_page():
     """Halaman manajemen user — hanya untuk BK."""
-    st.header("👥 Manajemen User")
+    st.markdown("<h1 style='font-size: 24px; font-weight: 700; color: var(--color-primary); margin-bottom: 8px;'>Manajemen Pengguna</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 14px; color: var(--color-text-secondary); margin-bottom: 32px;'>Kelola akses masuk untuk staf BK dan Guru.</p>", unsafe_allow_html=True)
 
     if st.session_state.role != 'BK':
-        st.error("⛔ Anda tidak memiliki akses ke halaman ini.")
+        st.error("Anda tidak memiliki akses ke halaman ini.")
         return
 
     users = get_all_users()
 
     # ── Daftar User ──
-    st.subheader("📋 Daftar User Terdaftar")
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Daftar User Terdaftar</h2>", unsafe_allow_html=True)
     if users:
         table_data = []
         for u in users:
@@ -36,8 +37,8 @@ def show_user_management_page():
         st.dataframe(pd.DataFrame(table_data), use_container_width=True, hide_index=True)
 
     # ── Tambah User Baru ──
-    st.markdown("---")
-    st.subheader("➕ Tambah User Baru")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Tambah User Baru</h2>", unsafe_allow_html=True)
 
     with st.form("add_user_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -48,19 +49,19 @@ def show_user_management_page():
             new_nama = st.text_input("Nama Lengkap", placeholder="Masukkan nama lengkap")
             new_role = st.selectbox("Peran", options=['BK', 'Guru'])
 
-        if st.form_submit_button("➕ Tambah User", use_container_width=True):
+        if st.form_submit_button("Tambah User", use_container_width=True):
             if not new_username or not new_password or not new_nama:
-                st.error("⚠️ Semua field harus diisi!")
+                st.error("Semua field harus diisi.")
             else:
                 if add_user(new_username, new_password, new_nama, new_role):
-                    st.success(f"✅ User **{new_username}** ({new_role}) berhasil ditambahkan!")
+                    st.success(f"User {new_username} ({new_role}) berhasil ditambahkan.")
                     st.rerun()
                 else:
-                    st.error(f"❌ Nama Pengguna **{new_username}** sudah digunakan!")
+                    st.error(f"Nama Pengguna {new_username} sudah digunakan.")
 
     # ── Edit User ──
-    st.markdown("---")
-    st.subheader("✏️ Edit User")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Edit User</h2>", unsafe_allow_html=True)
 
     editable_users = [u for u in users if u['id'] != st.session_state.user_id]
     if not editable_users:
@@ -94,19 +95,19 @@ def show_user_management_page():
                             placeholder="Biarkan kosong jika tidak ingin mengubah"
                         )
 
-                    if st.form_submit_button("💾 Simpan Perubahan", use_container_width=True):
+                    if st.form_submit_button("Simpan Perubahan", use_container_width=True):
                         edit_user(
                             selected_user_id,
                             nama_lengkap=edit_nama,
                             role=edit_role,
                             password=edit_password if edit_password else None
                         )
-                        st.success("✅ Data user berhasil diperbarui!")
+                        st.success("Data user berhasil diperbarui.")
                         st.rerun()
 
     # ── Hapus User ──
-    st.markdown("---")
-    st.subheader("🗑️ Hapus User")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Hapus User</h2>", unsafe_allow_html=True)
 
     deletable_users = [u for u in users if u['id'] != st.session_state.user_id]
     if not deletable_users:
@@ -124,7 +125,15 @@ def show_user_management_page():
             selected_del_id = del_user_options[selected_del_label]
             col_d1, col_d2 = st.columns([1, 3])
             with col_d1:
-                if st.button("🗑️ Hapus User", type="primary"):
+                st.markdown("""
+                <style>
+                div.stButton > button.delete-btn {
+                    background-color: var(--color-danger) !important;
+                    color: white !important;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                if st.button("Hapus User", type="primary"):
                     remove_user(selected_del_id)
-                    st.success("✅ User berhasil dihapus!")
+                    st.success("User berhasil dihapus.")
                     st.rerun()
