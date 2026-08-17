@@ -20,10 +20,14 @@ def load_file_from_path(file_path: str):
             df = pd.read_excel(file_path)
 
         if df is not None and not df.empty:
-            # Clean missing identifier rows
-            valid_id_cols = [c for c in ['NIS', 'Nama', 'NISN'] if c in df.columns]
-            if valid_id_cols:
-                df = df.dropna(subset=valid_id_cols).reset_index(drop=True)
+            # Isi kolom identitas yang kosong dengan nilai dummy agar baris data tidak terbuang
+            df = df.reset_index(drop=True)
+            if 'NISN' in df.columns:
+                df['NISN'] = df['NISN'].astype(str).replace('nan', None).fillna(pd.Series([str(i) for i in range(len(df))]))
+            if 'NIS' in df.columns:
+                df['NIS'] = df['NIS'].astype(str).replace('nan', None).fillna(pd.Series([ str(i) for i in range(len(df))]))
+            if 'Nama' in df.columns:
+                df['Nama'] = df['Nama'].astype(str).replace('nan', None).fillna(pd.Series([ str(i) for i in range(len(df))]))
 
             # Auto derive Status column if missing
             if 'Status' not in df.columns and 'Status_DO' not in df.columns:

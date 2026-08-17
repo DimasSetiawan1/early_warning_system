@@ -4,17 +4,41 @@ Aplikasi web berbasis **Streamlit** untuk memprediksi risiko siswa putus sekolah
 
 ---
 
+## 🌟 Kebaruan Proyek (Novelty)
+
+Penelitian dan pengembangan sistem ini membawa beberapa nilai kebaruan (_novelty_) dibanding sistem prediksi putus sekolah konvensional:
+
+1. **Klasifikasi Risiko Multi-Kelas (_Multi-Class Target Classification_)**:
+   Sistem tidak hanya memprediksi secara biner (_Dropout_ vs _Non-Dropout_), melainkan mendukung pemetaan spesifik penyebab risiko putus sekolah (seperti `DO-Nilai` akibat kendala akademik dan `DO-Masalah` akibat tata tertib/kedisiplinan). Hal ini memberikan wawasan yang lebih presisi bagi Guru BK untuk memberikan tindakan intervensi yang sesuai.
+
+2. **Seleksi Fitur Dinamis berbasis _Information Gain_ (Entropy)**:
+   Integrasi penyeleksian fitur secara otomatis menggunakan _Information Gain_ sebelum pembentukan Pohon Keputusan C4.5. Fitur-fitur yang tidak signifikan disaring berdasarkan ambang batas (_threshold_) dinamis untuk mengoptimalkan kejelasan (_interpretabilitas_) struktur pohon keputusan.
+
+3. **Pemisahan Hak Akses Berbasis Alur Kerja Nyata Sekolah**:
+   Penerapan aturan akses berbasis peran (_Role-Based Access Control_) yang disesuaikan dengan pembagian tugas nyata di sekolah:
+   - **Guru**: Berfokus pada pengunggahan dan pengelolaan berkas siswa kelasnya.
+   - **BK (Bimbingan Konseling)**: Bertindak sebagai eksekutor konfigurasi pemodelan C4.5, analisis dasbor riwayat prediksi, dan pengelola pengguna.
+
+4. **Arsitektur Perangkat Lunak MVC Terstruktur pada Streamlit**:
+   Pengembangan aplikasi Streamlit menggunakan pola desain **Model-View-Controller (MVC)** (memisahkan _models_, _views_, _controllers_, _services_, dan _utils_). Hal ini mengubah pendekatan Streamlit dari kode skrip tunggal/monolitik menjadi arsitektur modular yang rapi, _clean code_, dan mudah dirawat (_maintainable_).
+
+5. **Penerapan Metodologi CRISP-DM secara _End-to-End_**:
+   Penerapan siklus hidup _Data Mining_ CRISP-DM secara lengkap, mulai dari _Business Understanding_, _Data Understanding_, _Data Preparation_, _Modeling_, _Evaluation_, hingga _Deployment_ berbasis dasbor web interaktif.
+
+---
+
 ## 📋 Daftar Isi
 
-1. [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
-2. [Struktur Proyek](#-struktur-proyek)
-3. [Arsitektur MVC](#-arsitektur-mvc)
-4. [Arsitektur Sistem & Peran](#-arsitektur-sistem--peran)
-5. [Himpunan Data & Fitur](#-himpunan-data--fitur)
-6. [Implementasi Pra-pemrosesan Data](#-implementasi-pra-pemrosesan-data)
-7. [Implementasi Algoritma C4.5](#-implementasi-algoritma-c45)
-8. [Evaluasi Model](#-evaluasi-model)
-9. [Cara Menjalankan](#-cara-menjalankan)
+1. [Kebaruan Proyek (Novelty)](#-kebaruan-proyek-novelty)
+2. [Teknologi yang Digunakan](#-teknologi-yang-digunakan)
+3. [Struktur Proyek](#-struktur-proyek)
+4. [Arsitektur MVC](#-arsitektur-mvc)
+5. [Arsitektur Sistem & Peran](#-arsitektur-sistem--peran)
+6. [Himpunan Data & Fitur](#-himpunan-data--fitur)
+7. [Implementasi Pra-pemrosesan Data](#-implementasi-pra-pemrosesan-data)
+8. [Implementasi Algoritma C4.5](#-implementasi-algoritma-c45)
+9. [Evaluasi Model](#-evaluasi-model)
+10. [Cara Menjalankan](#-cara-menjalankan)
 
 ---
 

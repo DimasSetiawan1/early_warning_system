@@ -3,6 +3,7 @@ views/prediction_config_view.py
 Tampilan halaman Konfigurasi Prediksi dan sub-konfigurasi per mode.
 """
 
+import math
 import pandas as pd
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -104,6 +105,13 @@ def _config_primary_mode(df_raw, selected_file):
 
     with col_cfg2:
         test_size = st.slider("Rasio Data Uji (%)", min_value=10, max_value=50, value=20, step=5) / 100.0
+        
+        # Hitung estimasi jumlah data uji dan latih
+        total_valid_data = df_raw[target_col].dropna().shape[0]
+        test_count = math.ceil(total_valid_data * test_size)
+        train_count = total_valid_data - test_count
+        st.markdown(f"<p style='font-size: 13px; color: var(--color-text-secondary); margin-top: -10px; margin-bottom: 16px;'><i>Estimasi: <b>{train_count}</b> latih | <b>{test_count}</b> uji (Total: {total_valid_data})</i></p>", unsafe_allow_html=True)
+        
         max_depth = st.number_input("Kedalaman Pohon (Max Depth)", min_value=3, max_value=15, value=7)
         use_ig_selection = st.checkbox("Aktifkan Seleksi Fitur otomatis dengan Information Gain", value=False)
         ig_threshold = 0.0

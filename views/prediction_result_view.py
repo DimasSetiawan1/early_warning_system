@@ -350,57 +350,8 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
         y_pred_proba = metrics['y_pred_proba']
         is_binary = metrics['is_binary']
 
-        # ── Fase 3: Identifikasi Missing Values ──
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Fase 3 — Identifikasi Missing Values</h3>", unsafe_allow_html=True)
-        df_missing = df_raw[selected_train_features].isnull().sum().reset_index()
-        df_missing.columns = ['Fitur', 'Jumlah Missing Value']
-        df_missing['Persentase (%)'] = (df_missing['Jumlah Missing Value'] / len(df_raw)) * 100
-        df_missing['Persentase (%)'] = df_missing['Persentase (%)'].apply(lambda x: f"{x:.2f}%")
-        styled_missing = df_missing.style.hide(axis="index").set_table_styles([
-            {'selector': 'th', 'props': [('color', 'black'), ('font-weight', 'bold')]}
-        ])
-        st.dataframe(styled_missing, use_container_width=True)
-        if df_missing['Jumlah Missing Value'].sum() == 0:
-            st.success("Tidak ditemukan missing value pada fitur-fitur yang dipilih.")
-        else:
-            st.warning("Ditemukan missing value. Sistem telah secara otomatis melakukan imputasi (mengisi nilai yang kosong) selama proses preprocessing.")
-
-        # ── Fase 4: Identifikasi Outliers ──
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<h3 style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Fase 4 — Identifikasi Outliers</h3>", unsafe_allow_html=True)
-        st.info("Outliers diidentifikasi menggunakan metode IQR (Interquartile Range) pada seluruh fitur yang telah dienkode.")
-        
-        if not X_numeric.empty:
-            outliers_data = []
-            for col in X_numeric.columns:
-                Q1 = X_numeric[col].quantile(0.25)
-                Q3 = X_numeric[col].quantile(0.75)
-                IQR = Q3 - Q1
-                lower_bound = Q1 - 1.5 * IQR
-                upper_bound = Q3 + 1.5 * IQR
-                
-                outliers = X_numeric[(X_numeric[col] < lower_bound) | (X_numeric[col] > upper_bound)]
-                outliers_count = len(outliers)
-                outliers_data.append({
-                    'Fitur': col,
-                    'Jumlah Outlier': outliers_count,
-                    'Batas Bawah': round(lower_bound, 2),
-                    'Batas Atas': round(upper_bound, 2)
-                })
-                
-            df_outliers = pd.DataFrame(outliers_data)
-            styled_outliers = df_outliers.style.hide(axis="index").set_table_styles([
-                {'selector': 'th', 'props': [('color', 'black'), ('font-weight', 'bold')]}
-            ])
-            st.dataframe(styled_outliers, use_container_width=True)
-            
-            if df_outliers['Jumlah Outlier'].sum() == 0:
-                st.success("Tidak ditemukan outlier pada fitur terpilih.")
-            else:
-                st.warning("Ditemukan outlier. Algoritma Decision Tree C4.5 relatif robust (tangguh) terhadap outlier sehingga tidak memerlukan pemotongan data secara eksplisit.")
-        else:
-            st.write("Tidak ada fitur untuk diidentifikasi.")
+        # ── Fase 3 & Fase 4 (Identifikasi Missing Values & Outliers) disembunyikan sesuai permintaan user ──
+        pass
 
         # ── Tampilkan Fase 5: Evaluasi Model ──
         st.markdown("<br>", unsafe_allow_html=True)
@@ -412,7 +363,7 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
         _show_actual_vs_pred(y_test, y_pred, class_names)
 
         # ── Pengujian Sistem (System Testing) ──
-        _show_system_testing(X_numeric, y, metrics['acc'], c45_time)
+        # _show_system_testing(X_numeric, y, metrics['acc'], c45_time)
 
         # ── Cross Validation ──
         st.markdown("<br>", unsafe_allow_html=True)

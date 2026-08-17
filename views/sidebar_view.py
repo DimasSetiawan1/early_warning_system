@@ -40,7 +40,6 @@ def show_sidebar():
 
         if role == 'BK':
             menu_items = [
-                'Dasbor Publik',
                 'Riwayat Prediksi',
                 'Konfigurasi Prediksi',
                 'Manajemen Pengguna'
@@ -53,7 +52,6 @@ def show_sidebar():
             }
         elif role == 'Guru':
             menu_items = [
-                'Dasbor Publik',
                 'Manajemen File',
                 'Riwayat Prediksi'
             ]

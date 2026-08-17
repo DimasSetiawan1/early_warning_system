@@ -40,7 +40,7 @@ def show_login_page():
                 unsafe_allow_html=True
             )
             
-            username = st.text_input("Username", placeholder="Masukkan username")
+            username = st.text_input("Nama Pengguna", placeholder="Masukkan nama pengguna")
             password = st.text_input("Kata Sandi", type="password", placeholder="Masukkan kata sandi")
             
             st.markdown("<br>", unsafe_allow_html=True)
@@ -48,11 +48,11 @@ def show_login_page():
 
             if submitted:
                 if not username or not password:
-                    st.error("Username atau kata sandi tidak sesuai.")
+                    st.error("Nama pengguna atau kata sandi tidak sesuai.")
                 else:
                     if login(username, password):
                         st.rerun()
                     else:
-                        st.error("Username atau kata sandi tidak sesuai.")
+                        st.error("Nama pengguna atau kata sandi tidak sesuai.")
 
         
