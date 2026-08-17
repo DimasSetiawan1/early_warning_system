@@ -52,17 +52,16 @@ def show_sidebar():
             }
         elif role == 'Guru':
             menu_items = [
+                'Unggah Berkas',
                 'Manajemen File',
                 'Riwayat Prediksi'
             ]
             page_mapping = {
                 'Dasbor Publik': 'Halaman Utama',
+                'Unggah Berkas': 'Unggah Berkas',
                 'Manajemen File': 'Manajemen Berkas',
-                'Riwayat Prediksi': 'Hasil Prediksi' # Wait, riwayat prediksi for Guru should be "Manajemen Berkas" or "Dasbor Riwayat"? 
+                'Riwayat Prediksi': 'Dasbor Riwayat'
             }
-            # Wait, page routes in app.py:
-            # 'Dasbor Riwayat' (BK, Guru), 'Hasil Prediksi' (BK, Guru), 'Unggah Berkas' (Guru, BK), 'Manajemen Berkas' (Guru, BK)
-            page_mapping['Riwayat Prediksi'] = 'Dasbor Riwayat'
             
         else:
             menu_items = ['Dasbor Publik']
