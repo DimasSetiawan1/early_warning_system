@@ -1,0 +1,604 @@
+================================================================================
+LAPORAN EKSPLORASI DATASET MENTAH
+Target: NISN | Kehadiran | Nilai_Rata | Jumlah_Pelanggaran | Penghasilan_Ortu | Status
+================================================================================
+
+================================================================================
+FILE: Book1.xlsx  (30 KB)
+================================================================================
+  Total sheets: 1
+  Sheet names : ['Sheet1']
+
+  -- SHEET: [Sheet1] --
+  Header terdeteksi di baris ke-2
+  Shape setelah bersih: (206, 11)
+  Kolom (11): ['No', 'Nama Siswa', 'S1 (%)', 'S2 (%)', 'S3 (%)', 'S4 (%)', 'S5 (%)', 'Tren Akhir', 'Tren Persentase Semester 1 s/d 5', 'Evaluasi Akademik', '_col_10']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Nilai_Rata] -> ['Tren Akhir']
+      Tren Akhir:   dtype=object, non-null=203/206, unique=11, contoh=['Naik 📈', 'Turun 📉', 'Stabil ↔️', 'Aman', 'High Risk']
+  Preview 3 baris pertama (kolom relevan saja):
+Tren Akhir
+    Naik 📈
+    Naik 📈
+    Naik 📈
+
+================================================================================
+FILE: Daftar Siswa bermasalahUKK.xlsx  (132 KB)
+================================================================================
+  Total sheets: 15
+  Sheet names : ['Dftr STNK', 'Dftr SBKK', 'Hasil Rapat 1718', 'Hasil Rapat 1819', 'Hasil Rapat 1314', 'Hasil Rapat 1415', 'Hasil Rapat 1516', 'Hasil Rapat 1617', 'Hasil Rapat 1920', 'Hasi Rapat 2021', 'Hasil Rapat 2223', '2324', '2425', 'Pleno 2425', 'Sheet2']
+
+  -- SHEET: [Dftr STNK] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (5, 11)
+  Kolom (11): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'NIS', 'NISN', 'Masalah', '_col_7', '_col_8', '_col_9', 'Ket']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['NIS', 'NISN']
+      NIS:   → Semua NaN
+      NISN:   → Semua NaN
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=1/5, unique=1, contoh=[' % Hadir']
+  Preview 3 baris pertama (kolom relevan saja):
+ NIS  NISN  Masalah
+ NaN   NaN  % Hadir
+ NaN   NaN      NaN
+ NaN   NaN      NaN
+
+  -- SHEET: [Dftr SBKK] --
+  Header terdeteksi di baris ke-9
+  Shape setelah bersih: (22, 15)
+  Kolom (15): ['No', 'Nama Siswa', 'Masalah', '_col_3', '_col_4', '_col_5', '_col_6', 'Kesimpulan Rapat', '_col_8', 'Ket', '_col_10', '_col_11', '_col_12', '_col_13', '_col_14']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=1/22, unique=1, contoh=['% Hadir']
+  Preview 3 baris pertama (kolom relevan saja):
+Masalah
+% Hadir
+    NaN
+    NaN
+
+  -- SHEET: [Hasil Rapat 1718] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (109, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=23/109, unique=22, contoh=[' % Hadir', 0.54, '1.90%', '2.85%', '1. 78 %']
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+     NaN
+     NaN
+
+  -- SHEET: [Hasil Rapat 1819] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (187, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=54/187, unique=44, contoh=[' % Hadir', 0.49, 'Po = 52', 0.69, 'Po = 75']
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+     NaN
+     NaN
+
+  -- SHEET: [Hasil Rapat 1314] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (52, 8)
+  Kolom (8): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', 'Kesimpulan']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=13/52, unique=11, contoh=[' % Hadir', 86, 88, 87, 81]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+      86
+     NaN
+
+  -- SHEET: [Hasil Rapat 1415] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (88, 10)
+  Kolom (10): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=19/88, unique=16, contoh=[' % Hadir', 89.19, 92, 9, 57]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+   89.19
+      92
+
+  -- SHEET: [Hasil Rapat 1516] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (141, 10)
+  Kolom (10): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=31/141, unique=20, contoh=[' % Hadir', 84, 85, 86, 91]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+      84
+      85
+
+  -- SHEET: [Hasil Rapat 1617] --
+  Header terdeteksi di baris ke-7
+  Shape setelah bersih: (141, 14)
+  Kolom (14): ['1', 'X TAV', 'Utriyani, SPd', 'ALAN ALFIAN', '0.8', '4 mapel yg lulus', '_col_6', 'Point 98', 'Panggil ortu', 'Tidak Naik', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Penghasilan_Ortu] -> ['Panggil ortu']
+      Panggil ortu:   dtype=object, non-null=41/141, unique=26, contoh=['Panggil ortu', 'Home Visit', 'Panggilan Ortu lebih 3 X', 'Perjanjian 2', 'SP 2 X']
+    [Status] -> ['4 mapel yg lulus', 'Tidak Naik']
+      4 mapel yg lulus:   dtype=object, non-null=69/141, unique=60, contoh=['5 mapel yg lulus', 'MTK 70', 'IPA 70', 'IPS 72', 'Produktif 3']
+      Tidak Naik:   dtype=object, non-null=23/141, unique=3, contoh=['Tidak Naik', 'Naik', 'Tidak naik']
+  Preview 3 baris pertama (kolom relevan saja):
+Panggil ortu 4 mapel yg lulus Tidak Naik
+         NaN              NaN        NaN
+         NaN              NaN        NaN
+         NaN              NaN        NaN
+
+  -- SHEET: [Hasil Rapat 1920] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (147, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=11/147, unique=8, contoh=[' % Hadir', 0.67, 0.75, 0.7, 0.9]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+     NaN
+     NaN
+
+  -- SHEET: [Hasi Rapat 2021] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (83, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=7/83, unique=6, contoh=[' % Hadir', 0.4, 0.6, 0.7, 0.3]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+     NaN
+     NaN
+
+  -- SHEET: [Hasil Rapat 2223] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (104, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=11/104, unique=9, contoh=[' % Hadir', 0.65, 0.5, 0.7, 0.4]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+     NaN
+     NaN
+
+  -- SHEET: [2324] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (83, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=5/83, unique=4, contoh=[' % Hadir', 0.2, 0.8, 0.6]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+     NaN
+     NaN
+
+  -- SHEET: [2425] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (110, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=30/110, unique=24, contoh=[' % Hadir', 0.78, 'point 42 sisa', 0.93, 0.9]
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+     NaN
+    0.78
+
+  -- SHEET: [Pleno 2425] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (57, 14)
+  Kolom (14): ['No', 'Kelas/ Jurusan', 'Wali Kelas', 'Nama Siswa', 'Masalah', '_col_5', '_col_6', '_col_7', '_col_8', 'Kesimpulan', '_col_10', '_col_11', '_col_12', '_col_13']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Jumlah_Pelanggaran] -> ['Masalah']
+      Masalah:   dtype=object, non-null=15/57, unique=14, contoh=[' % Hadir', '7, 8, 6', 0.74, 'point - 10', '20, 4, 5']
+  Preview 3 baris pertama (kolom relevan saja):
+ Masalah
+ % Hadir
+ 7, 8, 6
+    0.74
+
+  -- SHEET: [Sheet2] --
+  Header terdeteksi di baris ke-4
+  Shape setelah bersih: (6, 16)
+  Kolom (16): ['_col_0', '_col_1', '_col_2', '_col_3', '_col_4', '_col_5', '_col_6', '_col_7', '_col_8', '_col_9', '_col_10', '_col_11', 'Ket Warna :', '_col_13', '1']...
+  - Tidak ada kolom target yang cocok di sheet ini.
+
+================================================================================
+FILE: FIX NILAI AKHIR 12.xlsx  (749 KB)
+================================================================================
+  Total sheets: 11
+  Sheet names : ['Sheet1', 'te', 'Sheet2', 'SISWA PRESTASI', '12 TE', 'tkr', '12 TKR', 'tkj', '12 TKJ', 'ak', '12 AK']
+
+  -- SHEET: [Sheet1] --
+  Header terdeteksi di baris ke-0
+  Shape setelah bersih: (1799, 4)
+  Kolom (4): ['1', '222310001', 'ADRIAN FAUZAN', '1.1']
+  - Tidak ada kolom target yang cocok di sheet ini.
+
+  -- SHEET: [te] --
+  Header terdeteksi di baris ke-2
+  Shape setelah bersih: (15, 161)
+  Kolom (161): ['_col_0', '_col_1', '_col_2', '_col_3', 'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST1.1', 'ST2.1', 'ST3.1', 'ST4.1', 'ST5.1']...
+  - Tidak ada kolom target yang cocok di sheet ini.
+
+  -- SHEET: [Sheet2] --
+  Header terdeteksi di baris ke-2
+  Shape setelah bersih: (25, 14)
+  Kolom (14): ['_col_0', 'LAPORAN MASING - MASING WALAS XII', '_col_2', '_col_3', '_col_4', '_col_5', '_col_6', 'XII TKJ 2', 'Fatmawaty', '_col_9', '_col_10', '_col_11', 'XII AK', 'Heni']
+  - Tidak ada kolom target yang cocok di sheet ini.
+
+  -- SHEET: [SISWA PRESTASI] --
+  Header terdeteksi di baris ke-1
+  Shape setelah bersih: (199, 10)
+  Kolom (10): ['175', 'ELISYA MEIZAHRA', '12 AKL', '88.90176470588236', '_col_4', '_col_5', 'NAMA SISWA PRESTASI BID. AKADEMIK', 'KELAS', 'RATA2 NILAI AKHIR SEKOLAH', 'KET']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Nilai_Rata] -> ['RATA2 NILAI AKHIR SEKOLAH']
+      RATA2 NILAI AKHIR SEKOLAH:   dtype=float64, non-null=4/199, min=86.71, max=88.90, mean=88.00
+  Preview 3 baris pertama (kolom relevan saja):
+ RATA2 NILAI AKHIR SEKOLAH
+                 88.901765
+                 88.441307
+                 87.944771
+
+  -- SHEET: [12 TE] --
+  Header terdeteksi di baris ke-8
+  Shape setelah bersih: (132, 28)
+  Kolom (28): ['_col_0', '_col_1', '_col_2', 'JENIS NILAI', 'Pend. Agama dan Budi Pekerti', 'PendIdikan Pancasila', 'Bahasa Indonesia', 'Pendidikan Jasmani, Olah Raga dan Kesehatan', 'Sejarah', 'Seni Budaya', 'Bahasa Sunda', 'Publik Speaking', 'Matematika', 'Bahasa Inggris', 'Informatika']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=126/132, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+    [Nilai_Rata] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=126/132, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+  Preview 3 baris pertama (kolom relevan saja):
+JENIS NILAI JENIS NILAI
+        NaN         NaN
+        NaN         NaN
+      SMT 1       SMT 1
+
+  -- SHEET: [tkr] --
+  Header terdeteksi di baris ke-2
+  Shape setelah bersih: (40, 159)
+  Kolom (159): ['_col_0', '_col_1', '_col_2', '_col_3', 'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST1.1', 'ST2.1', 'ST3.1', 'ST4.1', 'ST5.1']...
+  - Tidak ada kolom target yang cocok di sheet ini.
+
+  -- SHEET: [12 TKR] --
+  Header terdeteksi di baris ke-8
+  Shape setelah bersih: (357, 28)
+  Kolom (28): ['_col_0', '_col_1', '_col_2', 'JENIS NILAI', 'Pend. Agama dan Budi Pekerti', 'PendIdikan Pancasila', 'Bahasa Indonesia', 'Pendidikan Jasmani, Olah Raga dan Kesehatan', 'Sejarah', 'Seni Budaya', 'Bahasa Sunda', 'Publik Speaking', 'Matematika', 'Bahasa Inggris', 'Informatika']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=351/357, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+    [Nilai_Rata] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=351/357, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+  Preview 3 baris pertama (kolom relevan saja):
+JENIS NILAI JENIS NILAI
+        NaN         NaN
+        NaN         NaN
+      SMT 1       SMT 1
+
+  -- SHEET: [tkj] --
+  Header terdeteksi di baris ke-2
+  Shape setelah bersih: (108, 159)
+  Kolom (159): ['_col_0', '_col_1', '_col_2', '_col_3', 'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST1.1', 'ST2.1', 'ST3.1', 'ST4.1', 'ST5.1']...
+  - Tidak ada kolom target yang cocok di sheet ini.
+
+  -- SHEET: [12 TKJ] --
+  Header terdeteksi di baris ke-8
+  Shape setelah bersih: (969, 28)
+  Kolom (28): ['_col_0', '_col_1', '_col_2', 'JENIS NILAI', 'Pend. Agama dan Budi Pekerti', 'PendIdikan Pancasila', 'Bahasa Indonesia', 'Pendidikan Jasmani, Olah Raga dan Kesehatan', 'Sejarah', 'Seni Budaya', 'Bahasa Sunda', 'Publik Speaking', 'Matematika', 'Bahasa Inggris', 'Informatika']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=963/969, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+    [Nilai_Rata] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=963/969, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+  Preview 3 baris pertama (kolom relevan saja):
+JENIS NILAI JENIS NILAI
+        NaN         NaN
+        NaN         NaN
+      SMT 1       SMT 1
+
+  -- SHEET: [ak] --
+  Header terdeteksi di baris ke-2
+  Shape setelah bersih: (41, 163)
+  Kolom (163): ['_col_0', '_col_1', '_col_2', '_col_3', 'ST1', 'ST2', 'ST3', 'ST4', 'ST5', 'ST6', 'ST1.1', 'ST2.1', 'ST3.1', 'ST4.1', 'ST5.1']...
+  - Tidak ada kolom target yang cocok di sheet ini.
+
+  -- SHEET: [12 AK] --
+  Header terdeteksi di baris ke-8
+  Shape setelah bersih: (366, 28)
+  Kolom (28): ['_col_0', '_col_1', '_col_2', 'JENIS NILAI', 'Pend. Agama dan Budi Pekerti', 'PendIdikan Pancasila', 'Bahasa Indonesia', 'Pendidikan Jasmani, Olah Raga dan Kesehatan', 'Sejarah', 'Seni Budaya', 'Bahasa Sunda', 'Publik Speaking', 'Matematika', 'Bahasa Inggris', 'Informatika']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=360/366, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+    [Nilai_Rata] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=360/366, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+  Preview 3 baris pertama (kolom relevan saja):
+JENIS NILAI JENIS NILAI
+        NaN         NaN
+        NaN         NaN
+      SMT 1       SMT 1
+
+================================================================================
+FILE: RAPAT-nilai kelulusan TP 2023-2024.xlsx  (435 KB)
+================================================================================
+  Total sheets: 3
+  Sheet names : ['rangking', 'REKAP NILAI IJAZAH', 'HASIL PENGOLAHAN']
+
+  -- SHEET: [rangking] --
+  Header terdeteksi di baris ke-5
+  Shape setelah bersih: (260, 22)
+  Kolom (22): ['NO', 'NIS', 'NAMA PESERTA', 'KELAS', 'NILAI IJAZAH / SKL', '_col_5', '_col_6', '_col_7', '_col_8', '_col_9', '_col_10', '_col_11', '_col_12', '_col_13', '_col_14']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['NIS']
+      NIS:   dtype=float64, non-null=257/260, min=202110001.00, max=212220124.00, mean=202188778.00
+    [Nilai_Rata] -> ['NILAI IJAZAH / SKL', 'RATA-RATA']
+      NILAI IJAZAH / SKL:   dtype=float64, non-null=257/260, min=75.72, max=90.70, mean=84.71
+      RATA-RATA:   dtype=float64, non-null=260/260, min=73.95, max=87.20, mean=81.22
+  Preview 3 baris pertama (kolom relevan saja):
+        NIS  NILAI IJAZAH / SKL  RATA-RATA
+202110166.0           88.451760  87.200532
+202110178.0           86.412800  86.766645
+202110253.0           89.009736  86.731964
+
+  -- SHEET: [REKAP NILAI IJAZAH] --
+  Header terdeteksi di baris ke-6
+  Shape setelah bersih: (257, 21)
+  Kolom (21): ['_col_0', '_col_1', '_col_2', '_col_3', 'PAI', 'PKN', 'BIND', 'MTK', 'SEJ', 'B.ING', 'SBK', 'PENJAS', 'SUNDA', 'JEPANG', 'SIMDIG']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Nilai_Rata] -> ['RATA2']
+      RATA2:   dtype=float64, non-null=257/257, min=73.95, max=87.20, mean=81.23
+    [Jumlah_Pelanggaran] -> ['SBK']
+      SBK:   dtype=float64, non-null=257/257, min=76.55, max=92.00, mean=82.27
+  Preview 3 baris pertama (kolom relevan saja):
+    RATA2  SBK
+84.346852 85.5
+83.361393 87.5
+83.052481 86.5
+
+  -- SHEET: [HASIL PENGOLAHAN] --
+  Header terdeteksi di baris ke-9
+  Shape setelah bersih: (2321, 49)
+  Kolom (49): ['_col_0', '_col_1', '_col_2', 'JENIS NILAI', 'Pend. Agama dan Budi Pekerti', 'Pend. Pancasila dan Kewarganegaraan', 'Bahasa Indonesia', 'Matematika', 'Sejarah Indonesia', 'Bhs. Ingris dan Bhs. Asing Lainnya', 'Seni Budaya', 'PJOK', 'B. Sunda', 'B.Jepang', 'Sim Dig']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=2314/2321, unique=10, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+    [Nilai_Rata] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=2314/2321, unique=10, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+  Preview 3 baris pertama (kolom relevan saja):
+JENIS NILAI JENIS NILAI
+      SMT 1       SMT 1
+      SMT 2       SMT 2
+      SMT 3       SMT 3
+
+================================================================================
+FILE: data mentah.xlsx  (85 KB)
+================================================================================
+  Total sheets: 5
+  Sheet names : ['Sheet1', 'data TE', 'data TKR', 'data tkj', 'data AK']
+
+  -- SHEET: [Sheet1] --
+  Header terdeteksi di baris ke-8
+  Shape setelah bersih: (131, 26)
+  Kolom (26): ['_col_0', '_col_1', '_col_2', 'JENIS NILAI', 'Pend. Agama dan Budi Pekerti', 'PendIdikan Pancasila', 'Bahasa Indonesia', 'Pendidikan Jasmani, Olah Raga dan Kesehatan', 'Sejarah', 'Seni Budaya', 'Bahasa Sunda', 'Publik Speaking', 'Matematika', 'Bahasa Inggris', 'Informatika']...
+  [RELEVAN] KOLOM DITEMUKAN:
+    [NISN] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=126/131, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+    [Nilai_Rata] -> ['JENIS NILAI']
+      JENIS NILAI:   dtype=object, non-null=126/131, unique=9, contoh=['SMT 1', 'SMT 2', 'SMT 3', 'SMT 4', 'SMT 5']
+  Preview 3 baris pertama (kolom relevan saja):
+JENIS NILAI JENIS NILAI
+      SMT 1       SMT 1
+      SMT 2       SMT 2
+      SMT 3       SMT 3
+
+  -- SHEET: [data TE] --
+  Header terdeteksi di baris ke-3
+  Shape setelah bersih: (48, 10)
+  Kolom (10): ['No', 'Nama Siswa', 'S1 (%)', 'S2 (%)', 'S3 (%)', 'S4 (%)', 'S5 (%)', 'Tren Akhir', 'Tren Persentase Semester 1 s/d 5', 'Evaluasi Akademik']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Nilai_Rata] -> ['Tren Akhir']
+      Tren Akhir:   dtype=object, non-null=14/48, unique=3, contoh=['Naik 📈', 'Turun 📉', 'Stabil ↔️']
+  Preview 3 baris pertama (kolom relevan saja):
+Tren Akhir
+    Naik 📈
+    Naik 📈
+    Naik 📈
+
+  -- SHEET: [data TKR] --
+  Header terdeteksi di baris ke-3
+  Shape setelah bersih: (47, 10)
+  Kolom (10): ['No', 'Nama Siswa', 'S1 (%)', 'S2 (%)', 'S3 (%)', 'S4 (%)', 'S5 (%)', 'Status EWS', 'Pola Perjalanan Nilai (Kelas X → XI → XII)', 'Status Evaluasi EWS']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Nilai_Rata] -> ['Pola Perjalanan Nilai (Kelas X → XI → XII)']
+      Pola Perjalanan Nilai (Kelas X → XI → XII):   dtype=object, non-null=39/47, unique=39, contoh=['83.35% → 83.60% → 86.00%', '81.45% → 79.65% → 79.40%', '84.10% → 86.85% → 85.90%', '79.60% → 81.40% → 80.80%', '84.05% → 84.65% → 84.10%']
+    [Status] -> ['Status EWS', 'Status Evaluasi EWS']
+      Status EWS:   dtype=object, non-null=39/47, unique=5, contoh=['Aman', 'High Risk', 'Waspada', 'Aman (Rec)', 'Elite']
+      Status Evaluasi EWS:   dtype=object, non-null=39/47, unique=39, contoh=['Aman. Pertumbuhan nilai yang sangat linear dan stabil di atas ambang batas 80%.', 'High Risk. Tren menurun sejak Kelas XI dan gagal melakukan recovery di tahun akhir.', 'Aman. Konsistensi sangat tinggi dengan lonjakan performa signifikan di jenjang Kelas XI.', 'Borderline. Berhasil masuk zona aman di Kelas XI namun cenderung stagnan di Kelas XII.', 'Aman. Ketahanan akademik sangat stabil dengan fluktuasi yang sangat minimal.']
+  Preview 3 baris pertama (kolom relevan saja):
+Pola Perjalanan Nilai (Kelas X → XI → XII) Status EWS                                                                      Status Evaluasi EWS
+                  83.35% → 83.60% → 86.00%       Aman          Aman. Pertumbuhan nilai yang sangat linear dan stabil di atas ambang batas 80%.
+                  81.45% → 79.65% → 79.40%  High Risk      High Risk. Tren menurun sejak Kelas XI dan gagal melakukan recovery di tahun akhir.
+                  84.10% → 86.85% → 85.90%       Aman Aman. Konsistensi sangat tinggi dengan lonjakan performa signifikan di jenjang Kelas XI.
+
+  -- SHEET: [data tkj] --
+  Header terdeteksi di baris ke-3
+  Shape setelah bersih: (120, 10)
+  Kolom (10): ['No', 'Nama Siswa', 'S1 (%)', 'S2 (%)', 'S3 (%)', 'S4 (%)', 'S5 (%)', 'Tren Akhir', 'Pola Perjalanan Nilai (S1 → S5)', 'Status Evaluasi EWS']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Nilai_Rata] -> ['Tren Akhir', 'Pola Perjalanan Nilai (S1 → S5)']
+      Tren Akhir:   dtype=object, non-null=107/120, unique=1, contoh=['Naik 📈']
+      Pola Perjalanan Nilai (S1 → S5):   dtype=object, non-null=107/120, unique=82, contoh=['80,17% → 75,75% (S3) → 84,67%', '79,25% → 77,83% (S3) → 83,11%', '80,33% → 77,33% (S3) → 83,22%', '80,33% → 81,58% (S3) → 87,00%', '81,83% → 83,58% (S3) → 83,33%']
+    [Status] -> ['Status Evaluasi EWS']
+      Status Evaluasi EWS:   dtype=object, non-null=107/120, unique=107, contoh=['Recovery Berhasil. Penurunan tajam di S3 berhasil diatasi dengan lonjakan signifikan di S5.', 'Tren Stabil. Penurunan S3 relatif kecil, menunjukkan adaptasi materi yang baik.', 'Pola V-Shape. Menunjukkan resiliensi akademik standar kelas.', 'High Performer. Tidak mengalami penurunan di S3, justru cenderung naik.', 'Stagnan Positif. Nilai sangat stabil di angka 83% sepanjang semester.']
+  Preview 3 baris pertama (kolom relevan saja):
+Tren Akhir Pola Perjalanan Nilai (S1 → S5)                                                                         Status Evaluasi EWS
+    Naik 📈   80,17% → 75,75% (S3) → 84,67% Recovery Berhasil. Penurunan tajam di S3 berhasil diatasi dengan lonjakan signifikan di S5.
+    Naik 📈   79,25% → 77,83% (S3) → 83,11%             Tren Stabil. Penurunan S3 relatif kecil, menunjukkan adaptasi materi yang baik.
+    Naik 📈   80,33% → 77,33% (S3) → 83,22%                                Pola V-Shape. Menunjukkan resiliensi akademik standar kelas.
+
+  -- SHEET: [data AK] --
+  Header terdeteksi di baris ke-3
+  Shape setelah bersih: (46, 10)
+  Kolom (10): ['No', 'Nama Siswa', 'S1 (%)', 'S2 (%)', 'S3 (%)', 'S4 (%)', 'S5 (%)', 'Tren Akhir', 'Pola Perjalanan Nilai (S1 → S5)', 'Status Evaluasi EWS']
+  [RELEVAN] KOLOM DITEMUKAN:
+    [Nilai_Rata] -> ['Tren Akhir', 'Pola Perjalanan Nilai (S1 → S5)']
+      Tren Akhir:   dtype=object, non-null=40/46, unique=2, contoh=['Naik 📈', 'Turun 📉']
+      Pola Perjalanan Nilai (S1 → S5):   dtype=object, non-null=40/46, unique=40, contoh=['80.6% → 83.1% → 84.1% (S3) → 87.7%', '81.7% → 83.5% → 81.3% (S3) → 84.7%', '80.5% → 81.7% → 78.4% (S3) → 79.1%', '79.5% → 80.5% → 77.8% (S3) → 83.7%', '82.5% → 82.3% → 80.2% (S3) → 80.2%']
+    [Status] -> ['Status Evaluasi EWS']
+      Status Evaluasi EWS:   dtype=object, non-null=40/46, unique=40, contoh=['Aman. Tren pertumbuhan konsisten menunjukkan penguasaan materi yang sangat baik.', 'Aman. Berhasil melakukan pemulihan yang stabil pasca penurunan di S3.', 'Peringatan. Nilai S5 jatuh di bawah ambang 80%, menunjukkan risiko penurunan di tingkat akhir.', 'Aman. Kenaikan signifikan di S5 menandakan adaptasi yang baik pada materi kejuruan.', 'Peringatan. Volatilitas tinggi; nilai tertahan di angka minimal pada semester akhir.']
+  Preview 3 baris pertama (kolom relevan saja):
+Tren Akhir    Pola Perjalanan Nilai (S1 → S5)                                                                            Status Evaluasi EWS
+    Naik 📈 80.6% → 83.1% → 84.1% (S3) → 87.7%               Aman. Tren pertumbuhan konsisten menunjukkan penguasaan materi yang sangat baik.
+    Naik 📈 81.7% → 83.5% → 81.3% (S3) → 84.7%                          Aman. Berhasil melakukan pemulihan yang stabil pasca penurunan di S3.
+   Turun 📉 80.5% → 81.7% → 78.4% (S3) → 79.1% Peringatan. Nilai S5 jatuh di bawah ambang 80%, menunjukkan risiko penurunan di tingkat akhir.
+
+
+================================================================================
+RINGKASAN: SHEET YANG PUNYA KOLOM RELEVAN
+================================================================================
+
+[1] Book1.xlsx  ->  Sheet: Sheet1
+     Shape: (206, 11)  |  Header di baris: 2
+     Nilai_Rata                <- ['Tren Akhir']
+
+[2] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Dftr STNK
+     Shape: (5, 11)  |  Header di baris: 4
+     NISN                      <- ['NIS', 'NISN']
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[3] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Dftr SBKK
+     Shape: (22, 15)  |  Header di baris: 9
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[4] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 1718
+     Shape: (109, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[5] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 1819
+     Shape: (187, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[6] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 1314
+     Shape: (52, 8)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[7] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 1415
+     Shape: (88, 10)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[8] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 1516
+     Shape: (141, 10)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[9] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 1617
+     Shape: (141, 14)  |  Header di baris: 7
+     Penghasilan_Ortu          <- ['Panggil ortu']
+     Status                    <- ['4 mapel yg lulus', 'Tidak Naik']
+
+[10] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 1920
+     Shape: (147, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[11] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasi Rapat 2021
+     Shape: (83, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[12] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Hasil Rapat 2223
+     Shape: (104, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[13] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: 2324
+     Shape: (83, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[14] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: 2425
+     Shape: (110, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[15] Daftar Siswa bermasalahUKK.xlsx  ->  Sheet: Pleno 2425
+     Shape: (57, 14)  |  Header di baris: 4
+     Jumlah_Pelanggaran        <- ['Masalah']
+
+[16] FIX NILAI AKHIR 12.xlsx  ->  Sheet: SISWA PRESTASI
+     Shape: (199, 10)  |  Header di baris: 1
+     Nilai_Rata                <- ['RATA2 NILAI AKHIR SEKOLAH']
+
+[17] FIX NILAI AKHIR 12.xlsx  ->  Sheet: 12 TE
+     Shape: (132, 28)  |  Header di baris: 8
+     NISN                      <- ['JENIS NILAI']
+     Nilai_Rata                <- ['JENIS NILAI']
+
+[18] FIX NILAI AKHIR 12.xlsx  ->  Sheet: 12 TKR
+     Shape: (357, 28)  |  Header di baris: 8
+     NISN                      <- ['JENIS NILAI']
+     Nilai_Rata                <- ['JENIS NILAI']
+
+[19] FIX NILAI AKHIR 12.xlsx  ->  Sheet: 12 TKJ
+     Shape: (969, 28)  |  Header di baris: 8
+     NISN                      <- ['JENIS NILAI']
+     Nilai_Rata                <- ['JENIS NILAI']
+
+[20] FIX NILAI AKHIR 12.xlsx  ->  Sheet: 12 AK
+     Shape: (366, 28)  |  Header di baris: 8
+     NISN                      <- ['JENIS NILAI']
+     Nilai_Rata                <- ['JENIS NILAI']
+
+[21] RAPAT-nilai kelulusan TP 2023-2024.xlsx  ->  Sheet: rangking
+     Shape: (260, 22)  |  Header di baris: 5
+     NISN                      <- ['NIS']
+     Nilai_Rata                <- ['NILAI IJAZAH / SKL', 'RATA-RATA']
+
+[22] RAPAT-nilai kelulusan TP 2023-2024.xlsx  ->  Sheet: REKAP NILAI IJAZAH
+     Shape: (257, 21)  |  Header di baris: 6
+     Nilai_Rata                <- ['RATA2']
+     Jumlah_Pelanggaran        <- ['SBK']
+
+[23] RAPAT-nilai kelulusan TP 2023-2024.xlsx  ->  Sheet: HASIL PENGOLAHAN
+     Shape: (2321, 49)  |  Header di baris: 9
+     NISN                      <- ['JENIS NILAI']
+     Nilai_Rata                <- ['JENIS NILAI']
+
+[24] data mentah.xlsx  ->  Sheet: Sheet1
+     Shape: (131, 26)  |  Header di baris: 8
+     NISN                      <- ['JENIS NILAI']
+     Nilai_Rata                <- ['JENIS NILAI']
+
+[25] data mentah.xlsx  ->  Sheet: data TE
+     Shape: (48, 10)  |  Header di baris: 3
+     Nilai_Rata                <- ['Tren Akhir']
+
+[26] data mentah.xlsx  ->  Sheet: data TKR
+     Shape: (47, 10)  |  Header di baris: 3
+     Nilai_Rata                <- ['Pola Perjalanan Nilai (Kelas X → XI → XII)']
+     Status                    <- ['Status EWS', 'Status Evaluasi EWS']
+
+[27] data mentah.xlsx  ->  Sheet: data tkj
+     Shape: (120, 10)  |  Header di baris: 3
+     Nilai_Rata                <- ['Tren Akhir', 'Pola Perjalanan Nilai (S1 → S5)']
+     Status                    <- ['Status Evaluasi EWS']
+
+[28] data mentah.xlsx  ->  Sheet: data AK
+     Shape: (46, 10)  |  Header di baris: 3
+     Nilai_Rata                <- ['Tren Akhir', 'Pola Perjalanan Nilai (S1 → S5)']
+     Status                    <- ['Status Evaluasi EWS']
+
+Total sheet relevan: 28
