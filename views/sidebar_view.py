@@ -41,26 +41,26 @@ def show_sidebar():
         if role == 'BK':
             menu_items = [
                 'Riwayat Prediksi',
+                'Uji Prediksi',
                 'Konfigurasi Prediksi',
                 'Manajemen Pengguna'
             ]
             page_mapping = {
                 'Dasbor Publik': 'Halaman Utama',
                 'Riwayat Prediksi': 'Dasbor Riwayat',
+                'Uji Prediksi': 'Uji Prediksi',
                 'Konfigurasi Prediksi': 'Konfigurasi Prediksi',
                 'Manajemen Pengguna': 'Manajemen Pengguna'
             }
         elif role == 'Guru':
             menu_items = [
                 'Unggah Berkas',
-                'Manajemen File',
-                'Riwayat Prediksi'
+                'Manajemen File'
             ]
             page_mapping = {
                 'Dasbor Publik': 'Halaman Utama',
                 'Unggah Berkas': 'Unggah Berkas',
-                'Manajemen File': 'Manajemen Berkas',
-                'Riwayat Prediksi': 'Dasbor Riwayat'
+                'Manajemen File': 'Manajemen Berkas'
             }
             
         else:

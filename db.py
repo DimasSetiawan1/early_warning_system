@@ -94,40 +94,6 @@ def init_db():
         )
         conn.commit()
 
-    # Seed default dataset fix/data_siswa.csv jika belum ada
-    dataset_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dataset', 'fix', 'data_siswa.csv')
-    if os.path.exists(dataset_path):
-        cursor.execute("SELECT COUNT(*) as cnt FROM uploaded_files WHERE original_filename = 'data_siswa.csv'")
-        f_cnt = cursor.fetchone()['cnt']
-        if f_cnt == 0:
-            file_size = os.path.getsize(dataset_path)
-            cursor.execute(
-                """INSERT INTO uploaded_files
-                   (filename, original_filename, file_path, uploaded_by, file_size, description)
-                   VALUES (?, ?, ?, ?, ?, ?)""",
-                ('data_siswa.csv', 'data_siswa.csv', dataset_path, 1, file_size, 'Dataset Utama Siswa (NISN, Nama, Kelas, Angkatan, Gender, Nilai Rata-Rata, Kehadiran %, Panggilan BK, Status Beasiswa PIP)')
-            )
-            conn.commit()
-
-    # Seed default prediction_history jika belum ada
-    cursor.execute("SELECT COUNT(*) as cnt FROM prediction_history")
-    h_cnt = cursor.fetchone()['cnt']
-    if h_cnt == 0:
-        import json
-        config_detail = {
-            'target': 'Status_DO',
-            'features': ['Kelas', 'Angkatan', 'Gender', 'Nilai_Rata_Rata', 'Kehadiran_Persen', 'Panggilan_BK', 'Status_Beasiswa_PIP'],
-            'max_depth': 7,
-            'test_size': 0.2
-        }
-        cursor.execute(
-            """INSERT INTO prediction_history
-               (run_by, dataset_name, mode_analisis, accuracy, precision, recall, f1_score, config_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (1, 'data_siswa.csv', 'Data Primer (SMK Tunas Teknologi - Train On-the-fly)', 94.25, 92.50, 91.00, 91.75, json.dumps(config_detail))
-        )
-        conn.commit()
-
     conn.close()
 
 

@@ -40,44 +40,19 @@ def show_public_dashboard():
     st.markdown("<h1 style='font-size: 24px; font-weight: 700; color: var(--color-primary); margin-bottom: 0;'>DISTRIBUSI STATUS SISWA</h1>", unsafe_allow_html=True)
     st.markdown("<p style='font-size: 16px; color: var(--color-text-secondary); font-weight: 600; margin-bottom: 32px;'>Data Prediksi Risiko Putus Sekolah &middot; SMK Tunas Teknologi</p>", unsafe_allow_html=True)
 
-    history = db.get_prediction_history()
-
-    if not history:
-        st.info("Belum ada file data riwayat prediksi.")
+    import os
+    if not os.path.exists('dataset/latest_predictions.csv'):
+        st.info("Belum ada data hasil uji prediksi terbaru.")
         return
 
-    selected_h = history[0]
-    st.markdown(f"<p style='font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px;'>Menampilkan hasil prediksi terbaru dari file: <strong>{selected_h['dataset_name']}</strong> ({format_datetime(selected_h['run_at'])})</p>", unsafe_allow_html=True)
+    df_hist = pd.read_csv('dataset/latest_predictions.csv')
+    
+    dataset_name = df_hist['Tested_Dataset'].iloc[0] if 'Tested_Dataset' in df_hist.columns else "Dataset Uji"
+    tested_at = df_hist['Tested_At'].iloc[0] if 'Tested_At' in df_hist.columns else ""
+    
+    st.markdown(f"<p style='font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px;'>Menampilkan hasil prediksi terbaru dari file: <strong>{dataset_name}</strong> ({tested_at})</p>", unsafe_allow_html=True)
 
-    # Parse config_json
-    config_data = {}
-    if selected_h.get('config_json'):
-        try:
-            config_data = json.loads(selected_h['config_json'])
-        except Exception:
-            config_data = {}
-
-    target_col = config_data.get('target', 'Status')
-
-    # Cari file dataset yang sesuai
-    uploaded_files = db.get_uploaded_files()
-    matched_file = next(
-        (f for f in uploaded_files if f['original_filename'] == selected_h['dataset_name']),
-        None
-    )
-
-    file_path = matched_file['file_path'] if matched_file else f"dataset/{selected_h['dataset_name']}"
-    df_hist = load_file_from_path(file_path)
-
-    if df_hist is None or df_hist.empty:
-        st.warning("File dataset tidak dapat dimuat.")
-        return
-
-    if target_col not in df_hist.columns:
-        if 'Status_DO' in df_hist.columns:
-            target_col = 'Status_DO'
-        elif 'Status' in df_hist.columns:
-            target_col = 'Status'
+    target_col = 'Predicted_Status'
 
     if target_col not in df_hist.columns:
         st.warning("Target kolom tidak ditemukan pada data ini.")

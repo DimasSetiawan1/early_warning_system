@@ -39,6 +39,20 @@ def prepare_primary_run(df_raw, selected_file: dict, config_params: dict):
     st.rerun()
 
 
+def prepare_pretrained_primary_run(selected_file: dict):
+    """
+    Simpan konfigurasi mode Pre-trained Primer (Model Sistem) ke session_state.
+    """
+    st.session_state.run_config = {
+        'mode': 'Pre-trained Primer',
+        'test_file': selected_file,
+        'dataset_name': selected_file['original_filename'],
+        'is_saved': False,
+    }
+    st.session_state.current_page = 'Hasil Prediksi'
+    st.rerun()
+
+
 def save_prediction_history(user_id: int, dataset_name: str, metrics: dict,
                              config_params: dict):
     """

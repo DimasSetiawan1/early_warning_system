@@ -30,11 +30,11 @@ def load_uci_artifacts():
         return None, None, None
 
 
-def preprocess_primary_data(df_raw: pd.DataFrame, target_col: str, selected_features: list):
+def preprocess_primary_data(df_raw: pd.DataFrame, target_col: str, selected_features: list, is_training: bool = True):
     """
     Preprocessing untuk mode Data Primer:
     - Isi missing value (median untuk numerik, modus untuk kategorikal)
-    - Drop baris dengan target NaN
+    - Drop baris dengan target NaN (jika is_training=True)
     - Encode target (biner atau multi-kelas)
     - Encode fitur kategorikal dengan factorize
 
@@ -44,6 +44,10 @@ def preprocess_primary_data(df_raw: pd.DataFrame, target_col: str, selected_feat
     """
     df_model = df_raw.copy()
 
+    # Pastikan target_col ada di df_model, jika tidak isi dengan NaN
+    if target_col not in df_model.columns:
+        df_model[target_col] = np.nan
+
     # Isi missing value pada fitur
     for col in selected_features:
         if df_model[col].isnull().sum() > 0:
@@ -52,10 +56,10 @@ def preprocess_primary_data(df_raw: pd.DataFrame, target_col: str, selected_feat
             else:
                 df_model[col].fillna(df_model[col].mode()[0], inplace=True)
 
-    # Hapus baris dengan target NaN
+    # Hapus baris dengan target NaN hanya saat training
     y_raw = df_model[target_col].copy()
     nan_mask = y_raw.isna()
-    if nan_mask.sum() > 0:
+    if is_training and nan_mask.sum() > 0:
         st.warning(f"⚠️ Ditemukan {nan_mask.sum()} baris dengan target kosong (NaN). Baris-baris tersebut akan dihapus.")
         df_model = df_model[~nan_mask].reset_index(drop=True)
         y_raw = df_model[target_col].copy()
@@ -117,21 +121,26 @@ def apply_information_gain_selection(X_numeric: pd.DataFrame, y: np.ndarray,
 
 
 def train_c45_model(X_numeric: pd.DataFrame, y: np.ndarray,
-                    test_size: float, max_depth: int):
+                    test_size: float, max_depth: int,
+                    X_test_numeric: pd.DataFrame = None, y_test_ext: np.ndarray = None):
     """
     Train C4.5 model (DecisionTreeClassifier dengan criterion='entropy').
     Returns dict berisi: model, scaler, split data, metrik evaluasi.
     """
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_numeric, y, test_size=test_size, random_state=42, stratify=y
-    )
+    if X_test_numeric is not None and y_test_ext is not None:
+        X_train, X_test = X_numeric, X_test_numeric
+        y_train, y_test = y, y_test_ext
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_numeric, y, test_size=test_size, random_state=42, stratify=y
+        )
 
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_numeric.columns, index=X_train.index)
-    X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_numeric.columns, index=X_test.index)
+    X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_train.columns, index=X_train.index)
+    X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_test.columns, index=X_test.index)
 
     model_c45 = DecisionTreeClassifier(criterion='entropy', max_depth=max_depth, random_state=42)
     model_c45.fit(X_train_scaled, y_train)
@@ -210,3 +219,29 @@ def run_cross_validation(X_numeric: pd.DataFrame, y: np.ndarray,
         'recall': cv_recall,
         'f1': cv_f1,
     }
+
+
+def save_primary_model(model, scaler, config_params, path='primary_model.pkl'):
+    """
+    Simpan model Data Primer, scaler, dan pengaturan fitur ke file .pkl.
+    """
+    data_to_save = {
+        'model': model,
+        'scaler': scaler,
+        'config': config_params
+    }
+    with open(path, 'wb') as f:
+        pickle.dump(data_to_save, f)
+
+
+def load_primary_model(path='primary_model.pkl'):
+    """
+    Muat model Data Primer dari file .pkl.
+    Returns: dict data_to_save atau None jika gagal.
+    """
+    try:
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+        return data
+    except Exception:
+        return None

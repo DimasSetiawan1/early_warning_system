@@ -87,6 +87,8 @@ plt.rcParams['savefig.transparent'] = True
 # ── SESSION STATE ──────────────────────────────────────────────────────────────
 init_session_state()
 
+from views.guru_prediction_view import show_guru_prediction_page
+
 # ── ROUTING UTAMA ──────────────────────────────────────────────────────────────
 page = st.session_state.get('current_page', 'Halaman Utama')
 logged_in = st.session_state.get('logged_in', False)
@@ -103,10 +105,11 @@ else:
 
     # Peta halaman → (fungsi, peran yang diizinkan)
     PAGE_ROUTES = {
-        'Halaman Utama':         (show_riwayat_dashboard,     ['BK', 'Guru']),
-        'Dasbor Riwayat':        (show_riwayat_dashboard,     ['BK', 'Guru']),
+        'Halaman Utama':         (show_public_dashboard,      ['BK', 'Guru']),
+        'Dasbor Riwayat':        (show_riwayat_dashboard,     ['BK']),
         'Konfigurasi Prediksi':  (show_prediction_config,     ['BK']),
-        'Hasil Prediksi':        (show_prediction_results,    ['BK', 'Guru']),
+        'Uji Prediksi':          (show_guru_prediction_page,  ['BK']),
+        'Hasil Prediksi':        (show_prediction_results,    ['BK']),
         'Unggah Berkas':         (show_upload_page,           ['Guru', 'BK']),
         'Manajemen Berkas':      (show_file_management_page,  ['Guru', 'BK']),
         'Manajemen Pengguna':    (show_user_management_page,  ['BK']),

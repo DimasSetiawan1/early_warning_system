@@ -25,7 +25,7 @@ from models.ml_model import (
     apply_information_gain_selection,
     train_c45_model,
     evaluate_model,
-    run_cross_validation,
+    run_cross_validation
 )
 from models.file_utils import load_file_from_path
 
@@ -71,11 +71,345 @@ def show_prediction_results():
 
     if config['mode'] == 'Eksperimen':
         _run_experiment_mode(config['df_raw'])
+    elif config['mode'] == 'Pre-trained Primer':
+        _run_pretrained_primary_mode(config, is_new_run=is_new_run)
     else:
         _run_primary_mode(config, is_new_run=is_new_run)
 
     if is_new_run:
         st.session_state.run_config['is_saved'] = True
+
+
+# ── MODE PRE-TRAINED PRIMER (Untuk BK — Uji Prediksi) ─────────────────────────
+
+def _run_pretrained_primary_mode(config: dict, is_new_run: bool = False):
+    """Jalankan evaluasi menggunakan model Primer yang tersimpan, lalu tampilkan dashboard visual."""
+    st.markdown("<h2 style='font-size: 18px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px; margin-top: 32px;'>Evaluasi Data Menggunakan Model Sistem Tersimpan</h2>", unsafe_allow_html=True)
+
+    test_file = config['test_file']
+    dataset_name = config['dataset_name']
+    
+    from models.ml_model import load_primary_model, preprocess_primary_data
+    
+    saved_data = load_primary_model()
+    if not saved_data:
+        st.error("Model Sistem belum dilatih. Harap minta Admin/BK untuk melakukan Konfigurasi Prediksi terlebih dahulu.")
+        return
+        
+    model = saved_data['model']
+    scaler = saved_data['scaler']
+    sys_config = saved_data['config']
+    
+    train_features = sys_config['features']
+    target_col = sys_config['target']
+    
+    st.info(f"🚀 Memuat Dataset Uji: **{dataset_name}**")
+    df_test_raw = load_file_from_path(test_file['file_path'])
+    if df_test_raw is None:
+        st.error("Gagal memuat dataset uji. File mungkin rusak atau dihapus.")
+        return
+        
+    # Di Uji Prediksi, target_col TIDAK wajib ada (karena memang mau diprediksi)
+    missing_cols = [c for c in train_features if c not in df_test_raw.columns]
+    if missing_cols:
+        st.error(f"Dataset Anda tidak kompatibel dengan Model Sistem. Kolom fitur yang hilang: {', '.join(missing_cols)}")
+        return
+        
+    with st.spinner("Memproses data dan menjalankan prediksi..."):
+        # Jika dataset tidak punya kolom target, kita abaikan label asli
+        has_true_labels = target_col in df_test_raw.columns and df_test_raw[target_col].notna().any()
+        
+        X_test_numeric, y_test, class_names_from_test, categorical_cols = preprocess_primary_data(
+            df_test_raw, target_col, train_features, is_training=False
+        )
+        
+        class_names = sys_config.get('class_names', class_names_from_test)
+        
+        # Transform data
+        X_test_scaled = scaler.transform(X_test_numeric)
+        X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_test_numeric.columns, index=X_test_numeric.index)
+        
+        # Prediksi
+        y_pred = model.predict(X_test_scaled)
+        y_pred_proba = model.predict_proba(X_test_scaled)
+        
+        # Convert prediksi numerik ke label teks
+        if class_names:
+            label_map = {i: name for i, name in enumerate(class_names)}
+        elif len(model.classes_) == 2 and set(model.classes_) == {0, 1}:
+            label_map = {0: 'Non-Dropout', 1: 'Dropout'}
+        else:
+            label_map = {i: str(c) for i, c in enumerate(model.classes_)}
+        
+        pred_labels = pd.Series(y_pred).map(label_map).values
+        
+        # Build dataframe hasil
+        df_result = df_test_raw.copy()
+        df_result['Predicted_Status'] = pred_labels
+        
+        # Probabilitas tertinggi
+        df_result['Probabilitas_Risiko'] = y_pred_proba.max(axis=1)
+        
+        # Simpan ke latest_predictions.csv (untuk Dashboard Publik)
+        import datetime, os
+        os.makedirs('dataset', exist_ok=True)
+        df_save = df_result.copy()
+        df_save['Tested_Dataset'] = dataset_name
+        df_save['Tested_At'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        df_save.to_csv('dataset/latest_predictions.csv', index=False)
+        
+        # Simpan file per-run (untuk Riwayat Prediksi)
+        os.makedirs('dataset/prediction_runs', exist_ok=True)
+        run_timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_filename = f"prediction_{run_timestamp}.csv"
+        run_filepath = f"dataset/prediction_runs/{run_filename}"
+        df_save.to_csv(run_filepath, index=False)
+    
+    # ═══════════════════════════════════════════════════════════════════════
+    # DASHBOARD VISUAL HASIL UJI PREDIKSI
+    # ═══════════════════════════════════════════════════════════════════════
+    
+    st.markdown("---")
+    st.markdown("<h2 style='font-size: 20px; font-weight: 700; color: var(--color-primary); margin-bottom: 8px;'>📊 Dashboard Hasil Uji Prediksi</h2>", unsafe_allow_html=True)
+    st.markdown(f"<p style='font-size: 13px; color: var(--color-text-secondary); margin-bottom: 24px;'>Dataset: <strong>{dataset_name}</strong></p>", unsafe_allow_html=True)
+    
+    target = 'Predicted_Status'
+    total_siswa = len(df_result)
+    non_dropout_count = len(df_result[df_result[target] == 'Non-Dropout'])
+    dropout_count = total_siswa - non_dropout_count
+    pct_do = (dropout_count / total_siswa * 100) if total_siswa > 0 else 0
+    
+    # ── Stat Cards ──
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown(render_stat_card(
+            "Total Siswa Dievaluasi", f"{total_siswa}",
+            "Seluruh siswa dalam dataset uji"
+        ), unsafe_allow_html=True)
+    with c2:
+        st.markdown(render_stat_card(
+            "Siswa Berisiko (DO)", f"{dropout_count}",
+            f"Mewakili {pct_do:.1f}% dari keseluruhan",
+            "var(--color-danger)"
+        ), unsafe_allow_html=True)
+    with c3:
+        st.markdown(render_stat_card(
+            "Siswa Aman", f"{non_dropout_count}",
+            f"Mewakili {100 - pct_do:.1f}% dari keseluruhan",
+            "#2ECC71"
+        ), unsafe_allow_html=True)
+    
+    # Filter hanya siswa berisiko untuk visualisasi detail
+    df_risk = df_result[df_result[target] != 'Non-Dropout'].copy()
+    
+    # Warna per kategori risiko
+    risk_categories = df_risk[target].unique().tolist()
+    risk_palette = {}
+    risk_colors = ['#C0392B', '#E67E22', '#8E44AD', '#2980B9', '#27AE60']
+    for i, cat in enumerate(risk_categories):
+        risk_palette[cat] = risk_colors[i % len(risk_colors)]
+    
+    if not df_risk.empty:
+        # ── 1. Distribusi Kategori Risiko DO ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Distribusi Kategori Risiko Dropout</p>", unsafe_allow_html=True)
+        
+        ch1, ch2 = st.columns(2)
+        
+        risk_counts = df_risk[target].value_counts()
+        risk_labels = risk_counts.index.tolist()
+        risk_values = risk_counts.values.tolist()
+        
+        with ch1:
+            fig_bar, ax_bar = plt.subplots(figsize=(6, 4))
+            bar_colors = [risk_palette.get(l, '#999') for l in risk_labels]
+            bars = ax_bar.bar(risk_labels, risk_values, color=bar_colors, edgecolor='white', linewidth=1.5, width=0.6)
+            for bar, val in zip(bars, risk_values):
+                ax_bar.text(bar.get_x() + bar.get_width() / 2., bar.get_height() + 0.3,
+                           f'{val}', ha='center', va='bottom', fontweight='bold', fontsize=13)
+            ax_bar.set_ylabel('Jumlah Siswa', fontsize=11)
+            ax_bar.set_title('Jumlah Siswa per Kategori Risiko', fontsize=12, fontweight='bold')
+            ax_bar.spines['top'].set_visible(False)
+            ax_bar.spines['right'].set_visible(False)
+            ax_bar.grid(axis='y', alpha=0.3)
+            plt.tight_layout()
+            st.pyplot(fig_bar, transparent=True)
+            plt.close(fig_bar)
+        
+        with ch2:
+            fig_pie, ax_pie = plt.subplots(figsize=(6, 4))
+            pie_colors = [risk_palette.get(l, '#999') for l in risk_labels]
+            wedges, texts, autotexts = ax_pie.pie(
+                risk_values, labels=risk_labels, colors=pie_colors,
+                autopct='%1.1f%%', startangle=140, pctdistance=0.75,
+                textprops={'fontsize': 11, 'fontweight': 'bold'}
+            )
+            for autotext in autotexts:
+                autotext.set_fontsize(10)
+            ax_pie.set_title('Proporsi Kategori Berisiko', fontsize=12, fontweight='bold')
+            ax_pie.axis('equal')
+            plt.tight_layout()
+            st.pyplot(fig_pie, transparent=True)
+            plt.close(fig_pie)
+        
+        # ── 2. Distribusi per Angkatan ──
+        has_angkatan = 'Angkatan' in df_result.columns
+        has_kelas = 'Kelas' in df_result.columns
+        has_gender = 'Gender' in df_result.columns
+        
+        if has_angkatan:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Distribusi Risiko per Angkatan</p>", unsafe_allow_html=True)
+            
+            ang_col1, ang_col2 = st.columns(2)
+            
+            with ang_col1:
+                fig_ang, ax_ang = plt.subplots(figsize=(7, 4.5))
+                ct_ang = pd.crosstab(df_risk['Angkatan'], df_risk[target])
+                ct_ang.plot(kind='bar', ax=ax_ang, color=[risk_palette.get(c, '#999') for c in ct_ang.columns],
+                           edgecolor='white', linewidth=1)
+                ax_ang.set_title('Siswa Berisiko per Angkatan', fontsize=12, fontweight='bold')
+                ax_ang.set_xlabel('')
+                ax_ang.set_ylabel('Jumlah Siswa', fontsize=11)
+                ax_ang.legend(title='', frameon=False, fontsize=9)
+                ax_ang.spines['top'].set_visible(False)
+                ax_ang.spines['right'].set_visible(False)
+                ax_ang.grid(axis='y', alpha=0.3)
+                plt.xticks(rotation=0)
+                plt.tight_layout()
+                st.pyplot(fig_ang, transparent=True)
+                plt.close(fig_ang)
+            
+            with ang_col2:
+                # Tabel crosstab
+                st.markdown("<p style='font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px;'>Tabel Crosstab Angkatan × Status</p>", unsafe_allow_html=True)
+                ct_ang_full = pd.crosstab(df_risk['Angkatan'], df_risk[target], margins=True, margins_name='Total')
+                st.dataframe(ct_ang_full, use_container_width=True)
+        
+        # ── 3. Distribusi per Kelas ──
+        if has_kelas:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Distribusi Risiko per Kelas</p>", unsafe_allow_html=True)
+            
+            ct_kelas = pd.crosstab(df_risk['Kelas'], df_risk[target])
+            
+            fig_kelas, ax_kelas = plt.subplots(figsize=(10, max(5, len(ct_kelas) * 0.35)))
+            ct_kelas.plot(kind='barh', ax=ax_kelas, 
+                         color=[risk_palette.get(c, '#999') for c in ct_kelas.columns],
+                         edgecolor='white', linewidth=1)
+            ax_kelas.set_title('Siswa Berisiko per Kelas', fontsize=12, fontweight='bold')
+            ax_kelas.set_xlabel('Jumlah Siswa', fontsize=11)
+            ax_kelas.set_ylabel('')
+            ax_kelas.legend(title='', frameon=False, fontsize=9)
+            ax_kelas.spines['top'].set_visible(False)
+            ax_kelas.spines['right'].set_visible(False)
+            ax_kelas.grid(axis='x', alpha=0.3)
+            plt.tight_layout()
+            st.pyplot(fig_kelas, transparent=True)
+            plt.close(fig_kelas)
+        
+        # ── 4. Distribusi per Gender ──
+        if has_gender:
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<p style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>Distribusi Risiko per Gender</p>", unsafe_allow_html=True)
+            
+            gen_col1, gen_col2 = st.columns(2)
+            
+            with gen_col1:
+                fig_gen, ax_gen = plt.subplots(figsize=(6, 4))
+                sns.countplot(data=df_risk, x='Gender', hue=target, 
+                             palette=risk_palette, ax=ax_gen)
+                ax_gen.set_title('Siswa Berisiko per Gender', fontsize=12, fontweight='bold')
+                ax_gen.set_xlabel('')
+                ax_gen.set_ylabel('Jumlah Siswa', fontsize=11)
+                ax_gen.legend(title='', frameon=False, fontsize=9)
+                ax_gen.spines['top'].set_visible(False)
+                ax_gen.spines['right'].set_visible(False)
+                ax_gen.grid(axis='y', alpha=0.3)
+                plt.tight_layout()
+                st.pyplot(fig_gen, transparent=True)
+                plt.close(fig_gen)
+            
+            with gen_col2:
+                ct_gen = pd.crosstab(df_risk['Gender'], df_risk[target], margins=True, margins_name='Total')
+                st.markdown("<p style='font-size: 13px; font-weight: 600; color: var(--color-text-secondary); margin-bottom: 8px;'>Tabel Crosstab Gender × Status</p>", unsafe_allow_html=True)
+                st.dataframe(ct_gen, use_container_width=True)
+        
+        # ── 6. Tabel Detail Siswa Berisiko ──
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 16px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 16px;'>📋 Daftar Siswa Berisiko Dropout</p>", unsafe_allow_html=True)
+        
+        # Pilih kolom yang relevan untuk ditampilkan
+        display_cols = []
+        for col in ['NISN', 'Nama', 'Kelas', 'Angkatan', 'Gender', 'Nilai_Rata_Rata', 
+                     'Kehadiran_Persen', 'Panggilan_BK', 'Status_Bantuan_PIP']:
+            if col in df_risk.columns:
+                display_cols.append(col)
+        display_cols.append(target)
+        display_cols.append('Probabilitas_Risiko')
+        
+        df_display = df_risk[display_cols].copy()
+        df_display['Probabilitas_Risiko'] = df_display['Probabilitas_Risiko'].apply(lambda x: f"{x*100:.1f}%")
+        df_display = df_display.sort_values(target).reset_index(drop=True)
+        
+        st.dataframe(df_display, use_container_width=True, hide_index=True, height=400)
+        
+        # Download button
+        csv_data = df_display.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="📥 Unduh Daftar Siswa Berisiko (CSV)",
+            data=csv_data,
+            file_name=f"siswa_berisiko_{dataset_name}",
+            mime='text/csv',
+            use_container_width=True
+        )
+    else:
+        st.success("✅ Semua siswa dalam dataset ini diprediksi **Non-Dropout** (Aman). Tidak ada siswa yang terdeteksi berisiko.")
+    
+    # ── Evaluasi Model (jika ada label asli) ──
+    if has_true_labels:
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.expander("📊 Metrik Evaluasi Model (Perbandingan dengan Label Asli)", expanded=False):
+            metrics = evaluate_model(model, X_test_scaled, y_test, class_names)
+            
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Akurasi", f"{metrics['acc']*100:.2f}%")
+            m2.metric("Presisi", f"{metrics['prec']*100:.2f}%")
+            m3.metric("Recall", f"{metrics['rec']*100:.2f}%")
+            m4.metric("F1-Score", f"{metrics['f1']*100:.2f}%")
+            
+            st.text("=== CLASSIFICATION REPORT ===")
+            st.text(metrics.get('report', ''))
+    
+    # ── Simpan History ──
+    if is_new_run:
+        acc_val = 0.0
+        prec_val = 0.0
+        rec_val = 0.0
+        f1_val = 0.0
+        if has_true_labels:
+            metrics_save = evaluate_model(model, X_test_scaled, y_test, class_names)
+            acc_val = float(metrics_save['acc'] * 100)
+            prec_val = float(metrics_save['prec'] * 100)
+            rec_val = float(metrics_save['rec'] * 100)
+            f1_val = float(metrics_save['f1'] * 100)
+        
+        db.save_prediction_history(
+            run_by=st.session_state.user_id,
+            dataset_name=dataset_name,
+            mode_analisis='Model Sistem Tersimpan (Uji Prediksi)',
+            accuracy=acc_val,
+            precision=prec_val,
+            recall=rec_val,
+            f1_score=f1_val,
+            config_json=json_lib.dumps({
+                'tested_on': dataset_name, 
+                'train_features': train_features,
+                'prediction_file': run_filepath,
+                'class_names': class_names
+            })
+        )
+        st.toast("Hasil prediksi berhasil disimpan ke riwayat.")
 
 
 # ── MODE EKSPERIMEN (UCI Pre-trained) ─────────────────────────────────────────
@@ -306,7 +640,9 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
     df_raw = config['df_raw']
     target_col = config['target_col']
     selected_train_features = config['selected_train_features']
-    test_size = config['test_size']
+    test_method = config.get('test_method', 'Split dari Data Latih')
+    test_size = config.get('test_size')
+    test_file = config.get('test_file')
     max_depth = config['max_depth']
     use_ig_selection = config['use_ig_selection']
     ig_threshold = config['ig_threshold']
@@ -315,7 +651,7 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
     st.markdown("---")
     with st.spinner("Melatih Model C4.5 (Decision Tree) dan membuat visualisasi..."):
 
-        # ── Preprocessing ──
+        # ── Preprocessing Train Data ──
         X_numeric, y, class_names, categorical_cols = preprocess_primary_data(
             df_raw, target_col, selected_train_features
         )
@@ -325,18 +661,43 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
         if categorical_cols:
             st.info(f"ℹ️ Mengonversi kolom kategorikal: `{', '.join(categorical_cols)}`")
 
+        # ── Handle Separate Test Data ──
+        X_test_numeric = None
+        y_test_ext = None
+        if test_method == "Gunakan Dataset Uji Terpisah" and test_file:
+            st.info(f"🚀 Menggunakan Dataset Uji Terpisah: **{test_file['original_filename']}**")
+            df_test_raw = load_file_from_path(test_file['file_path'])
+            if df_test_raw is None:
+                st.error("Gagal memuat dataset uji. File mungkin rusak atau dihapus.")
+                return
+            
+            # Check if required columns exist in test data
+            missing_cols = [c for c in selected_train_features + [target_col] if c not in df_test_raw.columns]
+            if missing_cols:
+                st.error(f"Dataset Uji tidak memiliki kolom yang sama persis dengan Dataset Latih. Kolom yang hilang: {', '.join(missing_cols)}")
+                return
+                
+            X_test_numeric, y_test_ext, _, _ = preprocess_primary_data(
+                df_test_raw, target_col, selected_train_features
+            )
+
         # ── Seleksi Fitur (Information Gain) ──
         ig_df = None
         if use_ig_selection:
             try:
                 X_numeric, ig_df = apply_information_gain_selection(X_numeric, y, ig_threshold)
                 _show_ig_chart(ig_df, ig_threshold, len(selected_train_features))
+                
+                # Apply same selected features to test set if using separate test dataset
+                if X_test_numeric is not None:
+                    selected_by_ig = X_numeric.columns.tolist()
+                    X_test_numeric = X_test_numeric[selected_by_ig]
             except Exception as e:
                 st.error(f"Gagal menghitung Information Gain: {e}")
 
         # ── Training ──
         start_time = time.time()
-        result = train_c45_model(X_numeric, y, test_size, max_depth)
+        result = train_c45_model(X_numeric, y, test_size, max_depth, X_test_numeric, y_test_ext)
         c45_time = time.time() - start_time
         
         model_c45 = result['model']
@@ -386,8 +747,17 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
         # ── Prediksi Batch ──
         _show_batch_predictions(model_c45, scaler, X_numeric, df_raw, class_names, is_binary)
 
-        # ── Simpan ke Database ──
+        # ── Simpan ke Database & Simpan Model Tersimpan (Pre-trained Primer) ──
         if is_new_run:
+            config_to_save = {
+                'max_depth': max_depth,
+                'use_ig_selection': use_ig_selection,
+                'ig_threshold': ig_threshold,
+                'test_size': test_size,
+                'features': selected_train_features,
+                'target': target_col,
+                'class_names': class_names
+            }
             db.save_prediction_history(
                 run_by=st.session_state.user_id,
                 dataset_name=dataset_name,
@@ -396,16 +766,12 @@ def _run_primary_mode(config: dict, is_new_run: bool = False):
                 precision=float(metrics['prec'] * 100),
                 recall=float(metrics['rec'] * 100),
                 f1_score=float(metrics['f1'] * 100),
-                config_json=json_lib.dumps({
-                    'max_depth': max_depth,
-                    'use_ig_selection': use_ig_selection,
-                    'ig_threshold': ig_threshold,
-                    'test_size': test_size,
-                    'features': selected_train_features,
-                    'target': target_col
-                })
+                config_json=json_lib.dumps(config_to_save)
             )
-            st.toast("Hasil prediksi berhasil disimpan ke riwayat.")
+            # Simpan model untuk digunakan oleh Guru
+            from models.ml_model import save_primary_model
+            save_primary_model(model_c45, scaler, config_to_save)
+            st.toast("Hasil prediksi berhasil disimpan ke riwayat, dan Model Sistem diperbarui.")
 
 
 # ── Helper Visualization Functions ───────────────────────────────────────────
@@ -697,6 +1063,8 @@ def _show_batch_predictions(model_c45, scaler, X_numeric, df_raw, class_names: l
     df_result['Hasil_Prediksi'] = df_result['Hasil_Prediksi_Numerik'].map(
         {i: name for i, name in enumerate(class_names)}
     )
+    if df_result['Hasil_Prediksi'].isna().any():
+        df_result['Hasil_Prediksi'] = df_result['Hasil_Prediksi_Numerik'].astype(str)
     if is_binary:
         df_result['Probabilitas_Dropout'] = all_probs_full[:, 1]
     else:
@@ -775,7 +1143,9 @@ def _show_batch_predictions(model_c45, scaler, X_numeric, df_raw, class_names: l
                         data=df_box, 
                         x='Hasil_Prediksi', 
                         y=selected_feature_bp, 
-                        palette=batch_colors, 
+                        hue='Hasil_Prediksi',
+                        legend=False,
+                        palette='Set2',
                         ax=ax_box,
                         showmeans=True,
                         meanprops={"marker":"o", "markerfacecolor":"white", "markeredgecolor":"black", "markersize":"8"}

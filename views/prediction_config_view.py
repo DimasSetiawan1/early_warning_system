@@ -21,49 +21,33 @@ def show_prediction_config():
     # Load UCI artifacts
     model_uci, scaler_uci, features_uci = load_uci_artifacts()
 
-    available_files = db.get_uploaded_files()
-
-    if not available_files:
-        st.info("Belum ada file dataset yang tersedia. Silakan upload file terlebih dahulu melalui menu Manajemen Berkas.")
+    import os
+    dataset_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'dataset', 'fix', 'data_siswa.csv')
+    
+    st.markdown("<p style='font-size: 11px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;'>LANGKAH 1 — Dataset Pelatihan</p>", unsafe_allow_html=True)
+    
+    if not os.path.exists(dataset_path):
+        st.error("Dataset Utama (dataset/fix/data_siswa.csv) tidak ditemukan di direktori proyek!")
         return
 
-    st.markdown("<p style='font-size: 11px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;'>LANGKAH 1 — Pilih Dataset</p>", unsafe_allow_html=True)
-
-    file_options = {}
-    for f in available_files:
-        label = f"{f['original_filename']} — diunggah oleh {f['uploader_name']} — {format_datetime(f['uploaded_at'])}"
-        file_options[label] = f
-
-    selected_file_label = st.selectbox(
-        "File yang tersedia:",
-        options=list(file_options.keys())
-    )
-
-    selected_file = file_options.get(selected_file_label)
-    if selected_file is None:
-        return
-
-    df_raw = load_file_from_path(selected_file['file_path'])
+    st.info("Menggunakan Dataset Master: **dataset/fix/data_siswa.csv**")
+    
+    selected_file = {
+        'original_filename': 'data_siswa.csv',
+        'file_path': dataset_path
+    }
+    
+    df_raw = load_file_from_path(dataset_path)
 
     if df_raw is None:
-        st.error("Gagal memuat file dataset. File mungkin rusak atau sudah dihapus.")
+        st.error("Gagal memuat file dataset. File mungkin rusak.")
         return
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<p style='font-size: 11px; font-weight: 600; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;'>LANGKAH 2 — Parameter Model</p>", unsafe_allow_html=True)
 
-    mode = st.selectbox(
-        "Pilih Mode Analisis",
-        options=[
-            "Data Primer (SMK Tunas Teknologi - Train On-the-fly)",
-            "Eksperimen (UCI Himpunan Data - Pre-trained Model)"
-        ]
-    )
-
-    if mode == "Eksperimen (UCI Himpunan Data - Pre-trained Model)":
-        _config_experiment_mode(df_raw, selected_file)
-    else:
-        _config_primary_mode(df_raw, selected_file)
+    mode = "Data Primer (SMK Tunas Teknologi - Train On-the-fly)"
+    _config_primary_mode(df_raw, selected_file)
 
 
 # ── Sub-konfigurasi Mode Eksperimen ──────────────────────────────────────────
@@ -105,13 +89,13 @@ def _config_primary_mode(df_raw, selected_file):
 
     with col_cfg2:
         test_size = st.slider("Rasio Data Uji (%)", min_value=10, max_value=50, value=20, step=5) / 100.0
-        
-        # Hitung estimasi jumlah data uji dan latih
         total_valid_data = df_raw[target_col].dropna().shape[0]
         test_count = math.ceil(total_valid_data * test_size)
         train_count = total_valid_data - test_count
         st.markdown(f"<p style='font-size: 13px; color: var(--color-text-secondary); margin-top: -10px; margin-bottom: 16px;'><i>Estimasi: <b>{train_count}</b> latih | <b>{test_count}</b> uji (Total: {total_valid_data})</i></p>", unsafe_allow_html=True)
+        test_file = None
         
+        st.markdown("<hr style='margin: 12px 0;'>", unsafe_allow_html=True)
         max_depth = st.number_input("Kedalaman Pohon (Max Depth)", min_value=3, max_value=15, value=7)
         use_ig_selection = st.checkbox("Aktifkan Seleksi Fitur otomatis dengan Information Gain", value=False)
         ig_threshold = 0.0
@@ -181,7 +165,9 @@ def _config_primary_mode(df_raw, selected_file):
             prepare_primary_run(df_raw, selected_file, {
                 'target_col': target_col,
                 'selected_train_features': selected_train_features,
+                'test_method': "Split dari Data Latih",
                 'test_size': test_size,
+                'test_file': None,
                 'max_depth': max_depth,
                 'use_ig_selection': use_ig_selection,
                 'ig_threshold': ig_threshold,
